@@ -1,0 +1,67 @@
+server:
+  port: 8108
+spring:
+  application:
+    name: vip-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+      config:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        file-extension: yaml
+        import-check:
+          enabled: false
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/kumao_music?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:kumao123456}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+kumao:
+  vip:
+    cache-seconds: 300
+  pay:
+    # 渠道参数未配置时是否允许本地模拟支付（生产环境请设为 false）
+    mock-enabled: ${PAY_MOCK_ENABLED:true}
+    # 支付回调基础地址：必须是外网可访问的网关地址，本地联调可用内网穿透
+    notify-base-url: ${PAY_NOTIFY_BASE_URL:http://127.0.0.1:8080}
+    order-timeout-minutes: ${PAY_ORDER_TIMEOUT_MINUTES:30}
+    alipay:
+      enabled: ${ALIPAY_ENABLED:false}
+      # 沙箱网关；生产改为 https://openapi.alipay.com/gateway.do
+      gateway-url: ${ALIPAY_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+      app-id: ${ALIPAY_APP_ID:}
+      # 应用私钥（PKCS8，不带 BEGIN/END 头）
+      private-key: ${ALIPAY_PRIVATE_KEY:}
+      # 支付宝公钥，用于回调验签
+      public-key: ${ALIPAY_PUBLIC_KEY:}
+      return-url: "${ALIPAY_RETURN_URL:http://127.0.0.1:5173/#/vip}"
+    wechat:
+      # 微信支付没有公开沙箱，需要真实商户号；false 时自动降级为模拟支付
+      enabled: ${WECHAT_PAY_ENABLED:false}
+      app-id: ${WECHAT_APP_ID:}
+      mch-id: ${WECHAT_MCH_ID:}
+      merchant-serial-number: ${WECHAT_MERCHANT_SERIAL_NO:}
+      private-key: ${WECHAT_PRIVATE_KEY:}
+      private-key-path: ${WECHAT_PRIVATE_KEY_PATH:}
+      api-v3-key: ${WECHAT_API_V3_KEY:}
+      notify-url: ${WECHAT_NOTIFY_URL:}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

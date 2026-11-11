@@ -1,0 +1,79 @@
+{
+  "pages": [
+    { "path": "pages/index/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/rank/rank", "style": { "navigationBarTitleText": "排行榜" } },
+    { "path": "pages/playlist/playlist", "style": { "navigationBarTitleText": "歌单广场" } },
+    { "path": "pages/playlist/detail", "style": { "navigationBarTitleText": "歌单详情" } },
+    { "path": "pages/song/song", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/live/live", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/live/room", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/live/anchor", "style": { "navigationStyle": "custom" } },{ "path": "pages/live/all", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/singer/singer", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mv/mv", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mv/play", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/musician/musician", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/search/search", "style": { "navigationBarTitleText": "搜索" } },
+    { "path": "pages/mine/mine", "style": { "navigationBarTitleText": "我的" } },
+    { "path": "pages/mine/likes", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mine/profile", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mine/playlists", "style": { "navigationStyle": "custom" } },{ "path": "pages/mine/downloads", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/settings/settings", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/musician/detail", "style": { "navigationStyle": "custom" } },{ "path": "pages/musician/apply", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/musician/manage", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/login/login", "style": { "navigationBarTitleText": "登录" } },
+    { "path": "pages/login/register", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/vip/vip", "style": { "navigationBarTitleText": "会员中心" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "酷猫音乐",
+    "navigationBarBackgroundColor": "#08070a",
+    "backgroundColor": "#08070a",
+    "backgroundColorTop": "#08070a",
+    "backgroundColorBottom": "#08070a"
+  },
+  "tabBar": {
+    "color": "rgba(247,241,232,.38)",
+    "selectedColor": "#f5b45b",
+    "backgroundColor": "#0b0a0d",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "发现",
+        "iconPath": "static/tabbar/discover.png",
+        "selectedIconPath": "static/tabbar/discover-active.png"
+      },
+      {
+        "pagePath": "pages/rank/rank",
+        "text": "排行",
+        "iconPath": "static/tabbar/rank.png",
+        "selectedIconPath": "static/tabbar/rank-active.png"
+      },
+      {
+        "pagePath": "pages/live/live",
+        "text": "直播",
+        "iconPath": "static/tabbar/live.png",
+        "selectedIconPath": "static/tabbar/live-active.png"
+      },
+      {
+        "pagePath": "pages/vip/vip",
+        "text": "会员",
+        "iconPath": "static/tabbar/vip.png",
+        "selectedIconPath": "static/tabbar/vip-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "static/tabbar/mine.png",
+        "selectedIconPath": "static/tabbar/mine-active.png"
+      }
+    ]
+  }
+}
+
+
+
+
+
+

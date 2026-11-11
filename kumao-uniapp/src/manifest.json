@@ -1,0 +1,50 @@
+{
+  "name": "酷猫音乐",
+  "appid": "__UNI__KUMAO01",
+  "description": "酷猫音乐平台 APP 端",
+  "versionName": "1.4.2",
+  "versionCode": "142",
+  "transformPx": false,
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": { "alwaysShowBeforeRender": true, "waiting": true, "autoclose": true, "delay": 0 },
+    "modules": { "OAuth": {}, "Payment": {} },
+    "distribute": {
+      "android": {
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>"
+        ]
+      },
+      "ios": {},
+      "sdkConfigs": {}
+    }
+  },
+  "quickapp": {},
+  "mp-weixin": {
+    "appid": "",
+    "setting": { "urlCheck": false, "es6": true, "minified": true },
+    "usingComponents": true
+  },
+  "h5": {
+    "title": "酷猫音乐",
+    "router": { "mode": "hash" },
+    "devServer": { "port": 5174 }
+  },
+  "vueVersion": "3"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

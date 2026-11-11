@@ -1,0 +1,44 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Node
+node_modules/
+dist/
+dist-electron/
+unpackage/
+.npm
+.pnpm-store/
+
+# Build and tool caches
+**/build/
+.gradle/
+.workbuddy/
+.taste-skill/
+output/
+reports/
+503-diag/
+
+# Logs
+logs/
+*.log
+nohup.out
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env.local
+docker/volumes/

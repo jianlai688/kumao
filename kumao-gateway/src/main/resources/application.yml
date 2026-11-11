@@ -1,0 +1,182 @@
+server:
+  port: 8080
+  netty:
+    connection-timeout: 10s
+
+spring:
+  application:
+    name: kumao-gateway
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        group: DEFAULT_GROUP
+      config:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        file-extension: yaml
+        import-check:
+          enabled: false
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+          lower-case-service-id: true
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+      routes:
+        # 统一约定：/api/{module}/... -> 去掉前两段后转发到对应服务
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/**,/api/users/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+        - id: music-service
+          uri: lb://music-service
+          predicates:
+            - Path=/api/music/**
+          filters:
+            - StripPrefix=2
+        - id: playlist-service
+          uri: lb://playlist-service
+          predicates:
+            - Path=/api/playlist/**
+          filters:
+            - StripPrefix=2
+        - id: comment-service
+          uri: lb://comment-service
+          predicates:
+            - Path=/api/comment/**
+          filters:
+            - StripPrefix=2
+        - id: file-service
+          uri: lb://file-service
+          predicates:
+            - Path=/api/file/**
+          filters:
+            - StripPrefix=2
+        - id: live-service
+          uri: lb://live-service
+          predicates:
+            - Path=/api/live/**
+          filters:
+            - StripPrefix=2
+        - id: live-websocket
+          uri: lb:ws://live-service
+          predicates:
+            - Path=/ws/live/**
+        - id: musician-websocket
+          uri: lb:ws://musician-service
+          predicates:
+            - Path=/ws/musician/**
+        - id: search-service
+          uri: lb://search-service
+          predicates:
+            - Path=/api/search/**
+          filters:
+            - StripPrefix=2
+        - id: vip-service
+          uri: lb://vip-service
+          predicates:
+            - Path=/api/vip/**
+          filters:
+            - StripPrefix=2
+        - id: musician-service
+          uri: lb://musician-service
+          predicates:
+            - Path=/api/musician/**
+          filters:
+            - StripPrefix=2
+        - id: ad-service
+          uri: lb://ad-service
+          predicates:
+            - Path=/api/ad/**
+          filters:
+            - StripPrefix=2
+        - id: review-service
+          uri: lb://review-service
+          predicates:
+            - Path=/api/admin/ai/**
+          filters:
+            - StripPrefix=2
+        # 静态资源（MinIO 资源经 file-service 统一暴露）
+        - id: static-resource
+          uri: lb://file-service
+          predicates:
+            - Path=/static/**
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+
+kumao:
+  jwt:
+    secret: ${JWT_SECRET:kumao-music-platform-jwt-secret-key-2026-please-change}
+    expire-seconds: 604800
+  gateway:
+    # 免鉴权白名单（Ant 风格，匹配网关入口路径）
+    # 完全放行（任意请求方法）
+    whitelist:
+      - /api/auth/login
+      - /api/auth/register
+      - /api/auth/sms-code
+      - /api/auth/password/reset
+      - /api/live/live/rooms/dvr-callback
+      - /api/live/live/rooms/hls-callback
+      - /api/live/live/rooms/push-auth
+      # 支付回调与支付宝收银台跳转（由第三方服务端调用/浏览器直接打开）
+      - /api/vip/vip/pay/alipay/page/**
+      - /api/vip/vip/pay/alipay/notify
+      - /api/vip/vip/pay/wechat/notify
+      - /actuator/**
+      - /ws/**
+    # 公开只读接口（仅 GET）
+    public-read:
+      - /api/music/songs/**
+      - /api/music/singers/**
+      - /api/music/rank/**
+      - /api/music/mv/**
+      - /api/music/banners
+      - /api/playlist/playlists/public/**
+      - /api/comment/comments/song/**
+      - /api/comment/comments/*/replies
+      - /api/comment/likes/*/count
+      - /api/search/search/**
+      - /api/live/live/rooms/square
+      - /api/live/live/rooms/categories
+      - /api/live/live/rooms/*
+      - /api/live/live/rooms/*/online
+      - /api/live/live/danmaku/history/**
+      - /api/live/live/gifts
+      - /api/vip/vip/packages
+      - /api/musician/musician/page
+      - /api/musician/musician/*/homepage
+      - /api/ad/ad/active
+      - /static/**
+    # 仅 APP 可访问的专属接口
+    app-only:
+      - /api/music/app/**
+      - /api/users/app/**
+    # 仅桌面客户端可访问
+    desktop-only:
+      - /api/music/desktop/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway: info
+    com.kumao: debug

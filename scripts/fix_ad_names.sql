@@ -1,0 +1,1 @@
+USE kumao_music; UPDATE ad_plan SET material_name='耳机产品视频广告' WHERE id=19003; UPDATE ad_plan SET material_name='夏日音乐节推荐' WHERE id=19004; SELECT id,slot,material_name FROM ad_plan WHERE id IN (19003,19004);
