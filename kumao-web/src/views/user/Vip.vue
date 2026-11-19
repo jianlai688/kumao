@@ -220,8 +220,8 @@
           </button>
         </div>
 
-        <div v-if="channels.mockEnabled && (!channels.alipayEnabled || !channels.wechatEnabled)" class="pay-tip">
-          当前环境会使用本地模拟支付，仅用于开发演示。
+        <div v-if="selectedChannelMock" class="pay-tip">
+          当前选择的渠道未配置，将使用本地模拟支付，仅用于开发演示。
         </div>
 
         <button type="button" class="pay-submit" :disabled="pay.loading" @click="submitPay">
@@ -279,6 +279,7 @@
               loop
               playsinline
               @playing="startAdCountdown"
+              @timeupdate="startAdCountdown"
               @error="onAdMediaError"
             ></video>
             <div v-else-if="isAudioAd" class="ad-media ad-audio">
@@ -316,7 +317,7 @@
             :disabled="adViewer.claiming"
             @click="claimAdReward"
           >{{ adViewer.claiming ? '领取中…' : '领取 1 天 VIP' }}</button>
-          <button v-else type="button" class="ad-claim-button" disabled>{{ adViewer.loading ? '准备中' : `${adViewer.remaining} 秒后可领取` }}</button>
+          <button v-else type="button" class="ad-claim-button" disabled>{{ adViewer.error ? '暂不可领取' : (adViewer.loading ? '准备中' : `${adViewer.remaining} 秒后可领取`) }}</button>
         </div>
       </div>
     </el-dialog>
@@ -371,6 +372,7 @@ const adViewer = reactive({
   error: '',
   remaining: AD_SECONDS,
   timer: null,
+  endAt: 0,
   completed: false,
   claiming: false,
   claimError: ''
@@ -386,6 +388,10 @@ const fallbackAdCover = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent
   '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540"><rect width="960" height="540" fill="#171717"/><circle cx="480" cy="238" r="68" fill="#272727"/><path d="M464 202l42 36-42 36z" fill="#c8f74f"/><rect x="250" y="350" width="460" height="10" rx="5" fill="#2d2d2d"/></svg>'
 )
 
+const selectedChannelMock = computed(() => {
+  if (!channels.mockEnabled) return false
+  return pay.method === 'WECHAT' ? !channels.wechatEnabled : !channels.alipayEnabled
+})
 const claimedToday = computed(() => !!status.adRewardClaimedToday)
 const adButtonLabel = computed(() => {
   if (!userStore.isLogin) return '登录后领取'
@@ -540,7 +546,7 @@ function startPolling(orderNo) {
   pay.statusText = '等待扫码支付…'
   pay.timer = setInterval(async () => {
     try {
-      const res = await vipApi.payStatus(orderNo)
+      const res = await vipApi.payStatus(orderNo, { silent: true })
       const state = res.data?.status
       if (state === 'PAID') {
         stopPolling()
@@ -554,9 +560,17 @@ function startPolling(orderNo) {
         pay.statusText = '订单已关闭，请重新下单'
       }
     } catch (error) {
-      /* 下次轮询继续 */
+      if (isOrderPermissionError(error)) {
+        stopPolling()
+        pay.statusText = '该订单属于其他账号，请切换回下单账号查看'
+        ElMessage.warning('该订单不属于当前登录账号，请使用下单账号登录后查看支付结果')
+      }
     }
   }, 2500)
+}
+
+function isOrderPermissionError(error) {
+  return (error?.message || '').includes('无权查看')
 }
 
 function stopPolling() {
@@ -582,12 +596,20 @@ async function checkPayReturn() {
   if (orderNo) {
     for (let i = 0; i < 8; i += 1) {
       try {
-        const res = await vipApi.payStatus(orderNo)
+        const res = await vipApi.payStatus(orderNo, { silent: true })
         if (res.data?.status === 'PAID') {
           ElMessage.success('支付宝支付成功，会员已开通')
           break
         }
-      } catch (error) { /* ignore */ }
+      } catch (error) {
+        if (isOrderPermissionError(error)) {
+          ElMessage.warning('该订单不属于当前登录账号，请使用下单账号登录后查看支付结果')
+          break
+        }
+        if ((error?.message || '').includes('请先登录') || (error?.message || '').includes('登录已过期')) {
+          break
+        }
+      }
       await new Promise((resolve) => setTimeout(resolve, 1500))
     }
   }
@@ -619,6 +641,7 @@ function resetAdViewer() {
   adViewer.ad = null
   adViewer.error = ''
   adViewer.remaining = AD_SECONDS
+  adViewer.endAt = 0
   adViewer.completed = false
   adViewer.claiming = false
   adViewer.claimError = ''
@@ -631,7 +654,7 @@ async function openRewardAd() {
   adViewer.visible = true
   adViewer.loading = true
   try {
-    const res = await adApi.active()
+    const res = await adApi.active('VIP_REWARD')
     const ads = (res.data || []).filter((item) => item.planId && (item.fileUrl || item.coverUrl))
     const ad = ads.find((item) => item.type === 'VIDEO' && item.fileUrl)
       || ads.find((item) => item.type === 'AUDIO' && item.fileUrl)
@@ -644,9 +667,11 @@ async function openRewardAd() {
       adVideo.value?.play?.().catch(() => {})
     } else if (ad.type === 'AUDIO' && ad.fileUrl) {
       adAudio.value?.play?.().catch(() => {})
-    } else {
-      window.setTimeout(() => startAdCountdown(), 300)
     }
+    // 兜底：部分浏览器/素材不会触发 playing/timeupdate，仍要开始倒计时
+    window.setTimeout(() => {
+      if (!adViewer.error) startAdCountdown()
+    }, 800)
   } catch (error) {
     adViewer.error = error?.message || '广告加载失败，请稍后重试'
   } finally {
@@ -661,14 +686,17 @@ function retryRewardAd() {
 function startAdCountdown() {
   if (adViewer.timer || adViewer.completed) return
   adViewer.remaining = AD_SECONDS
+  adViewer.endAt = Date.now() + AD_SECONDS * 1000
+  // 用截止时间计算，避免标签页后台时 setInterval 被浏览器节流导致倒计时卡住
   adViewer.timer = setInterval(() => {
-    adViewer.remaining = Math.max(0, adViewer.remaining - 1)
-    if (adViewer.remaining === 0) {
+    const left = Math.max(0, Math.ceil((adViewer.endAt - Date.now()) / 1000))
+    adViewer.remaining = left
+    if (left === 0) {
       stopAdCountdown()
       adViewer.completed = true
       stopAdMedia()
     }
-  }, 1000)
+  }, 250)
 }
 
 function onAdMediaError() {
@@ -936,8 +964,8 @@ onBeforeUnmount(() => {
   background: var(--vip-surface);
   transition: border-color .18s, transform .18s;
 }
-.plan-card:hover { border-color: #54554b; transform: translateY(-2px); }
-.plan-card.recommended { border-color: rgba(200, 247, 79, .62); background: #151710; }
+.plan-card:hover { border-color: #d9cae9; transform: translateY(-2px); }
+.plan-card.recommended { border-color: #cdb2e6; background: #fff; }
 .plan-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .plan-name { color: var(--vip-text); font-size: 13px; font-weight: 600; }
 .plan-badge { padding: 3px 7px; border-radius: 999px; background: var(--vip-lime); color: var(--vip-ink); font-size: 11px; font-weight: 700; }
@@ -961,7 +989,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
   cursor: pointer;
 }
-.plan-button:hover { border-color: #7b7c6c; background: #1c1d19; }
+.plan-button:hover { border-color: #d3bce6; background: #faf6fe; }
 .plan-button.primary { border-color: var(--vip-lime); background: var(--vip-lime); color: var(--vip-ink); }
 .plan-button.primary:hover { background: #d7ff7d; }
 .plan-card.recommended .plan-price { color: var(--vip-lime); }
@@ -989,15 +1017,15 @@ onBeforeUnmount(() => {
   gap: 12px;
   min-height: 60px;
   padding: 10px 15px;
-  border-top: 1px solid #20211e;
+  border-top: 1px solid #f0ebf5;
 }
 .order-row:first-child { border-top: 0; }
 .order-identity { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .order-identity strong { color: var(--vip-text); font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.order-identity small { color: #92938a; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order-identity small { color: #8a8096; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .order-date { color: var(--vip-muted); font-size: 11px; }
-.order-type span { display: inline-flex; padding: 3px 7px; border-radius: 4px; background: #23241f; color: #b8b9ac; font-size: 11px; white-space: nowrap; }
-.order-type span.reward { background: rgba(200, 247, 79, .12); color: var(--vip-lime); }
+.order-type span { display: inline-flex; padding: 3px 7px; border-radius: 4px; background: #f3eef8; color: #6f657b; font-size: 11px; white-space: nowrap; }
+.order-type span.reward { background: #eaf9f1; color: #0d8a61; }
 .order-amount { color: var(--vip-text); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
 .order-status { color: var(--vip-muted); font-size: 11px; text-align: right; }
 .order-status.active { color: var(--vip-lime); }
@@ -1081,54 +1109,58 @@ onBeforeUnmount(() => {
 <style>
 .vip-pay-dialog,
 .ad-reward-dialog {
-  background: #0d0e0b !important;
-  border: 1px solid #2c2d27 !important;
   border-radius: 16px !important;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, .58) !important; /* taste-skill-ignore: floating dialog */
+}
+.vip-pay-dialog {
+  background: #fff !important;
+  border: 1px solid #ece7f2 !important;
+  box-shadow: 0 24px 70px rgba(40, 22, 63, .16) !important;
 }
 .vip-pay-dialog .el-dialog__header {
-  padding: 20px 20px 0;
+  padding: 20px 22px 12px;
   margin: 0;
+  border-bottom: 1px solid #f0ebf5;
 }
-.vip-pay-dialog .el-dialog__body { padding: 18px 20px 20px; color: #f7f7f3; }
-.vip-pay-dialog .el-dialog__headerbtn .el-dialog__close { color: #8d8e84; }
-.vip-pay-dialog .el-dialog__headerbtn:hover .el-dialog__close { color: #f7f7f3; }
+.vip-pay-dialog .el-dialog__body { padding: 18px 22px 20px; color: #1d1726; }
+.vip-pay-dialog .el-dialog__headerbtn .el-dialog__close { color: #8b8195; }
+.vip-pay-dialog .el-dialog__headerbtn:hover .el-dialog__close { color: #4f465a; }
 .pay-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.pay-head h2 { margin: 4px 0 0; color: #f7f7f3; font-size: 20px; font-weight: 650; letter-spacing: -.03em; }
-.pay-days { padding: 4px 8px; border: 1px solid #3a3b32; border-radius: 999px; color: #c8f74f; font-size: 10.5px; white-space: nowrap; }
+.pay-head h2 { margin: 4px 0 0; color: #1d1726; font-size: 20px; font-weight: 650; letter-spacing: -.03em; }
+.pay-days { padding: 4px 8px; border: 1px solid #e4d9ee; border-radius: 999px; background: #faf4ff; color: #8b3fce; font-size: 10.5px; white-space: nowrap; }
 .pay-body { padding-top: 4px; }
-.pay-amount { margin: 12px 0 2px; color: #f7f7f3; font-size: 48px; line-height: 1; font-weight: 700; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
-.pay-amount span { margin-right: 3px; color: #9c9c96; font-size: 22px; font-weight: 500; letter-spacing: 0; }
-.pay-note { margin: 8px 0 20px; color: #9c9c96; font-size: 11.5px; }
+.pay-amount { margin: 12px 0 2px; color: #1d1726; font-size: 48px; line-height: 1; font-weight: 700; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.pay-amount span { margin-right: 3px; color: #776d83; font-size: 22px; font-weight: 500; letter-spacing: 0; }
+.pay-note { margin: 8px 0 20px; color: #776d83; font-size: 11.5px; }
 .pay-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .pay-method {
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 11px;
-  border: 1px solid #30312b;
+  border: 1px solid #e1d9e9;
   border-radius: 10px;
-  background: #151613;
-  color: #f7f7f3;
+  background: #fff;
+  color: #1d1726;
   text-align: left;
   cursor: pointer;
+  transition: border-color .16s, background .16s;
 }
-.pay-method:hover { border-color: #5b5d4f; }
-.pay-method.active { border-color: #c8f74f; background: #1b1e13; }
+.pay-method:hover { border-color: #d3bce6; background: #fdfbff; }
+.pay-method.active { border-color: #8b3fce; background: #faf4ff; }
 .pay-logo { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; }
 .pay-logo.alipay { background: #1677ff; }
 .pay-logo.wechat { background: #07c160; }
 .pay-method > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pay-method b { font-size: 12px; font-weight: 600; }
-.pay-method small { color: #8e8f84; font-size: 10px; white-space: nowrap; }
-.pay-tip { margin: 12px 0 15px; color: #c8b77a; font-size: 11px; line-height: 1.55; }
-.pay-submit { width: 100%; height: 44px; border: 0; border-radius: 999px; background: #c8f74f; color: #10110e; font-size: 13px; font-weight: 700; cursor: pointer; }
-.pay-submit:hover:not(:disabled) { background: #d7ff7d; }
+.pay-method small { color: #776d83; font-size: 10px; white-space: nowrap; }
+.pay-tip { margin: 12px 0 15px; color: #8a5c00; font-size: 11px; line-height: 1.55; }
+.pay-submit { width: 100%; height: 44px; border: 0; border-radius: 999px; background: var(--km-grad); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+.pay-submit:hover:not(:disabled) { filter: brightness(1.04); }
 .pay-submit:disabled { opacity: .55; cursor: wait; }
 .pay-qr { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 0 4px; }
 .pay-qr img { width: 230px; height: 230px; padding: 7px; border-radius: 10px; background: #fff; }
-.pay-qr p { margin: 4px 0 0; color: #f7f7f3; font-size: 13px; font-weight: 600; }
-.pay-qr span { color: #9c9c96; font-size: 11px; }
+.pay-qr p { margin: 4px 0 0; color: #1d1726; font-size: 13px; font-weight: 600; }
+.pay-qr span { color: #776d83; font-size: 11px; }
 .pay-qr .text-link { margin-top: 4px; }
 
 .ad-reward-dialog .el-dialog__header { display: none; }

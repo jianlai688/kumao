@@ -1,4 +1,5 @@
 import request from './request'
+import { resolveUploadBase, uploadTimeoutFor } from '@/utils/uploadBase'
 
 export const authApi = {
   login: (data) => request.post('/auth/login', data),
@@ -16,6 +17,7 @@ export const userApi = {
   loginLogs: (params) => request.get('/users/me/login-logs', { params }),
   applyAnchor: (data) => request.post('/users/anchor/apply', data),
   myAnchorApply: () => request.get('/users/anchor/my'),
+  updateAnchorProfile: (data) => request.put('/users/anchor/profile', data),
   adminPage: (params) => request.get('/users/admin/page', { params }),
   updateStatus: (id, status) => request.put(`/users/admin/${id}/status`, null, { params: { status } }),
   adminLoginLogs: (params) => request.get('/users/admin/login-logs', { params }),
@@ -46,8 +48,8 @@ export const musicApi = {
   createSinger: (data) => request.post('/music/singers/admin', data),
   updateSinger: (id, data) => request.put(`/music/singers/admin/${id}`, data),
   deleteSinger: (id) => request.delete(`/music/singers/admin/${id}`),
-  hot: (limit = 20) => request.get('/music/rank/hot', { params: { limit } }),
-  newSongs: (limit = 20) => request.get('/music/rank/new', { params: { limit } }),
+  homeSettings: () => request.get('/music/home/settings', { silent: true }),
+  hot: (limit = 20) => request.get('/music/rank/hot', { params: { limit } }),  newSongs: (limit = 20) => request.get('/music/rank/new', { params: { limit } }),
   rising: (limit = 20) => request.get('/music/rank/rising', { params: { limit } }),
   mvs: (params) => request.get('/music/mv', { params }),
   playMv: (id) => request.get(`/music/mv/${id}/play`),
@@ -62,7 +64,8 @@ export const musicApi = {
   updateMv: (id, data) => request.put(`/music/mv/admin/${id}`, data),
   updateMvStatus: (id, status) => request.put(`/music/mv/admin/${id}/status`, null, { params: { status } }),
   deleteMv: (id) => request.delete(`/music/mv/admin/${id}`),
-  banners: () => request.get('/music/banners')
+  banners: () => request.get('/music/banners'),
+  bannersAdmin: () => request.get('/music/banners/admin')
 }
 
 export const playlistApi = {
@@ -73,6 +76,7 @@ export const playlistApi = {
   detail: (id) => request.get(`/playlist/playlists/${id}`),
   create: (data) => request.post('/playlist/playlists', data),
   update: (id, data) => request.put(`/playlist/playlists/${id}`, data),
+  publish: (id, publicFlag) => request.put(`/playlist/playlists/${id}/publish`, null, { params: { publicFlag } }),
   remove: (id) => request.delete(`/playlist/playlists/${id}`),
   addSong: (id, songId) => request.post(`/playlist/playlists/${id}/songs/${songId}`),
   removeSong: (id, songId) => request.delete(`/playlist/playlists/${id}/songs/${songId}`),
@@ -108,15 +112,29 @@ export const recordApi = {
 }
 
 export const fileApi = {
-  upload: (file, bizType = 'common', options = {}) => {
-    const form = new FormData()
-    form.append('file', file)
-    return request.post('/file/files/upload', form, {
+  upload: async (file, bizType = 'common', options = {}) => {
+    const buildForm = () => {
+      const form = new FormData()
+      form.append('file', file)
+      return form
+    }
+    const base = await resolveUploadBase()
+    const config = {
       params: { bizType },
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: uploadTimeoutFor(file?.size),
       onUploadProgress: options.onUploadProgress,
       signal: options.signal
-    })
+    }
+    try {
+      return await request.post('/file/files/upload', buildForm(), { ...config, baseURL: base || undefined })
+    } catch (e) {
+      // 直连本机的探测可能被浏览器策略拦掉，这时自动回落到站点相对路径再试一次
+      const code = e?.code || ''
+      const retryable = base && !e?.response && code !== 'ERR_CANCELED' && code !== 'ECONNABORTED'
+      if (!retryable) throw e
+      return request.post('/file/files/upload', buildForm(), config)
+    }
   },
   remove: (id) => request.delete(`/file/files/${id}`),
   adminPage: (params) => request.get('/file/files/admin/page', { params })
@@ -131,7 +149,9 @@ export const liveApi = {
   create: (data) => request.post('/live/live/rooms', data),
   update: (id, data) => request.put(`/live/live/rooms/${id}`, data),
   pushUrl: (id) => request.get(`/live/live/rooms/${id}/push-url`),
-  start: (id) => request.post(`/live/live/rooms/${id}/start`),
+  audience: (id) => request.get(`/live/live/rooms/${id}/audience`),
+  obsConfig: () => request.get('/live/live/rooms/obs-config'),
+  start: (id, params = {}) => request.post(`/live/live/rooms/${id}/start`, null, { params }),
   like: (id) => request.post(`/live/live/rooms/${id}/like`),
   stop: (id) => request.post(`/live/live/rooms/${id}/stop`),
   remove: (id) => request.delete(`/live/live/rooms/${id}`),
@@ -141,11 +161,14 @@ export const liveApi = {
   statistics: () => request.get('/live/live/rooms/admin/statistics'),
   danmakuHistory: (roomId, params) => request.get(`/live/live/danmaku/history/${roomId}`, { params }),
   adminDanmaku: (params) => request.get('/live/live/danmaku/admin/page', { params }),
+  adminDanmakuStatus: (id, status) => request.put(`/live/live/danmaku/admin/${id}/status`, null, { params: { status } }),
   deleteDanmaku: (id) => request.delete(`/live/live/danmaku/admin/${id}`),
   gifts: () => request.get('/live/live/gifts'),
   balance: () => request.get('/live/live/gifts/balance'),
   sendGift: (data) => request.post('/live/live/gifts/send', data),
   received: (params) => request.get('/live/live/gifts/received', { params }),
+  settlements: () => request.get('/live/live/rooms/settlements/mine'),
+  roomSettlement: (id) => request.get(`/live/live/rooms/${id}/settlement`),
   giftSummary: () => request.get('/live/live/gifts/received/summary'),
   adminGifts: (params) => request.get('/live/live/gifts/admin/page', { params }),
   createGift: (data) => request.post('/live/live/gifts/admin', data),
@@ -171,7 +194,7 @@ export const vipApi = {
   coinPackages: () => request.get('/vip/vip/pay/coin/packages'),
   createPayment: (data) => request.post('/vip/vip/pay/create', data),
   createAdPayment: (planId, payType) => request.post('/vip/vip/pay/ad/create', { planId, payType }),
-  payStatus: (orderNo) => request.get(`/vip/vip/pay/status/${orderNo}`),
+  payStatus: (orderNo, config = {}) => request.get(`/vip/vip/pay/status/${orderNo}`, { ...config }),
   mockPay: (orderNo) => request.post(`/vip/vip/pay/mock/${orderNo}/success`),
   members: (params) => request.get('/vip/vip/admin/members', { params }),
   adminOrders: (params) => request.get('/vip/vip/admin/orders', { params }),
@@ -184,6 +207,7 @@ export const vipApi = {
 export const musicianApi = {
   apply: (data) => request.post('/musician/musician/apply', data),
   mine: () => request.get('/musician/musician/mine'),
+  updateMine: (data) => request.put('/musician/musician/mine', data),
   page: (params) => request.get('/musician/musician/page', { params }),
   homepage: (id) => request.get(`/musician/musician/${id}/homepage`),
   follow: (id) => request.post(`/musician/musician/${id}/follow`),
@@ -223,6 +247,7 @@ export const adApi = {
   report: (planId, action, region, hour) => request.post(`/ad/ad/report/${planId}`, null, { params: { action, region, hour } }),
   apply: (data) => request.post('/ad/ad/apply', data),
   mine: () => request.get('/ad/ad/mine'),
+  updateMine: (data) => request.put('/ad/ad/mine', data),
   materials: (params) => request.get('/ad/ad/materials', { params }),
   createMaterial: (data) => request.post('/ad/ad/materials', data),
   updateMaterial: (id, data) => request.put(`/ad/ad/materials/${id}`, data),
@@ -243,6 +268,9 @@ export const adApi = {
   auditMaterial: (id, approved, reason) => request.post(`/ad/ad/admin/materials/${id}/audit`, null, { params: { approved, reason } }),
   adminPlans: (params) => request.get('/ad/ad/admin/plans', { params }),
   auditPlan: (id, approved, reason) => request.post(`/ad/ad/admin/plans/${id}/audit`, null, { params: { approved, reason } }),
+  adminPlanAction: (id, action) => request.post(`/ad/ad/admin/plans/${id}/action`, null, { params: { action } }),
+  adminPricing: () => request.get('/ad/ad/admin/pricing'),
+  updateAdminPricing: (prices) => request.put('/ad/ad/admin/pricing', prices),
   adminRevenue: () => request.get('/ad/ad/admin/revenue/summary')
 }
 
@@ -261,4 +289,3 @@ export const reviewApi = {
   logs: (params) => request.get('/admin/ai/logs', { params }),
   stats: () => request.get('/admin/ai/stats')
 }
-

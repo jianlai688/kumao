@@ -257,6 +257,41 @@ public class AuthService {
                 user.getAvatar(), user.getRoles(), device);
     }
 
+    /**
+     * 注销账号：清除登录态、脱敏用户信息并做逻辑删除。
+     * 注销后用户名不再可登录，手机号/邮箱等个人信息一并清空。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelAccount(Long userId, String token) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException("用户不存在或已注销");
+        }
+        java.util.Set<String> keys = redisTemplate.keys(LOGIN_TOKEN_KEY + userId + ":*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+        if (StringUtils.hasText(token)) {
+            redisTemplate.opsForValue().set(BLACKLIST_KEY + token, "1", Duration.ofDays(7));
+        }
+        String maskedName = "deleted_" + userId;
+        com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<SysUser> update =
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<SysUser>()
+                        .eq(SysUser::getId, userId)
+                        .set(SysUser::getStatus, 1)
+                        .set(SysUser::getUsername, maskedName)
+                        .set(SysUser::getNickname, "已注销用户")
+                        .set(SysUser::getPhone, null)
+                        .set(SysUser::getEmail, null)
+                        .set(SysUser::getAvatar, null)
+                        .set(SysUser::getIntro, null)
+                        .set(SysUser::getThirdOpenId, null);
+        userMapper.update(null, update);
+        // 逻辑删除（deleted = 1），后续查询与登录均不再命中
+        userMapper.deleteById(userId);
+        log.info("[账号注销] userId={} 已注销", userId);
+    }
+
     public void logout(Long userId, String device, String token) {
         if (userId == null) {
             return;

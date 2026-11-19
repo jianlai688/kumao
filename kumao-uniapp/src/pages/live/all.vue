@@ -115,7 +115,7 @@ onLoad(async () => {
 }
 .cat.on { background: rgba(245,180,91,.18); color: #f5cf9a; font-weight: 800; }
 .state { padding: 140rpx 0; display: flex; flex-direction: column; align-items: center; gap: 16rpx; color: rgba(247,241,232,.4); font-size: 23rpx; }
-.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: #f5b45b; animation: spin .8s linear infinite; }
+.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: var(--km-accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { padding: 140rpx 60rpx; display: flex; flex-direction: column; align-items: center; gap: 10rpx; }
 .empty-title { font-size: 29rpx; font-weight: 800; color: #f7f1e8; }
@@ -140,4 +140,5 @@ onLoad(async () => {
 .cat-tag { padding: 2rpx 10rpx; border-radius: 5rpx; background: rgba(245,180,91,.14); color: #f5cf9a; font-size: 16rpx; }
 .foot { text-align: center; padding: 26rpx 0 40rpx; font-size: 20rpx; color: rgba(247,241,232,.24); }
 </style>
+
 

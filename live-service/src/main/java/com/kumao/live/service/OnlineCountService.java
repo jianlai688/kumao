@@ -90,6 +90,18 @@ public class OnlineCountService {
                 .count();
     }
 
+    /** 当前在线登录用户 ID（去重），供实时观众画像使用。 */
+    public Set<Long> viewerIds(Long roomId) {
+        if (roomId == null) {
+            return Set.of();
+        }
+        return redisTemplate.opsForHash().entries(ONLINE_KEY + roomId).values().stream()
+                .map(String::valueOf)
+                .filter(value -> value.matches("\\d+"))
+                .map(Long::valueOf)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
     /** 本场累计观看人数：按登录 userId 去重。 */
     public long totalViewers(Long roomId) {
         if (roomId == null) {

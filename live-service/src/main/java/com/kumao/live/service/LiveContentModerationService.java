@@ -8,12 +8,15 @@ import com.kumao.common.exception.BizException;
 import com.kumao.common.result.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 直播弹幕实时审核：先检查禁言状态，再由 review-service 做 AI 内容审核。
- * 违规内容不广播、不持久化，并自动禁言发送者。
+ *
+ * <p>审核结果只决定弹幕是否自动通过；PASS 且低风险才广播，其余结果保留并转管理员复核，
+ * 不再自动禁言发送者。</p>
  */
 @Slf4j
 @Service
@@ -24,22 +27,11 @@ public class LiveContentModerationService {
     private final ReviewClient reviewClient;
     private final UserClient userClient;
 
-    @Value("${kumao.moderation.mute-minutes:60}")
-    private int muteMinutes;
-    @Value("${kumao.moderation.reject-risk-score:35}")
-    private int rejectRiskScore;
-
-    /** AI 审核服务不可用时，短时间内跳过远程调用，避免每条弹幕都被超时拖慢。 */
-    private volatile long moderationSkipUntil = 0L;
-
-    public void checkText(Long userId, Long roomId, String content) {
+    public ModerationResultDTO review(Long userId, Long roomId, String content) {
         ensureNotMuted(userId);
         if (sensitiveWordService.contains(content)) {
-            muteUser(userId, "弹幕命中敏感词");
-            throw new BizException(403, "弹幕包含敏感词，你已被禁言");
-        }
-        if (System.currentTimeMillis() < moderationSkipUntil) {
-            return;
+            return localResult("REJECT", 100, "弹幕命中敏感词，已转管理员复核",
+                    List.of("敏感词命中"));
         }
 
         ModerationRequestDTO request = new ModerationRequestDTO();
@@ -47,23 +39,30 @@ public class LiveContentModerationService {
         request.setItemId(String.valueOf(roomId));
         request.setContent(content);
         request.getMetadata().put("roomId", roomId);
-        ModerationResultDTO result;
         try {
             R<ModerationResultDTO> response = reviewClient.moderate(request);
-            result = response == null ? null : response.getData();
-            moderationSkipUntil = 0L;
+            ModerationResultDTO result = response == null ? null : response.getData();
+            if (result != null) {
+                return result;
+            }
+            log.warn("弹幕 AI 审核返回空结果，转管理员复核 roomId={}", roomId);
         } catch (Exception e) {
-            // review-service 短暂不可用时放行，避免直播互动整体不可用。
-            moderationSkipUntil = System.currentTimeMillis() + 30_000L;
-            log.warn("弹幕 AI 审核不可用，暂按放行处理（30 秒内跳过远程审核）: {}", e.getMessage());
-            return;
+            // 审核不可用时不能自动放行，保留弹幕并交给管理员复核。
+            log.warn("弹幕 AI 审核不可用，转管理员复核 roomId={}: {}", roomId, e.getMessage());
         }
-        if (result == null) return;
-        boolean violation = "REJECT".equalsIgnoreCase(result.getDecision())
-                || result.getRiskScore() >= rejectRiskScore;
-        if (!violation) return;
-        muteUser(userId, result.getReasons());
-        throw new BizException(403, "弹幕内容违规，你已被禁言");
+        return localResult("REVIEW", 50, "AI 审核服务暂不可用，已转管理员复核",
+                List.of("审核服务不可用"));
+    }
+
+    private ModerationResultDTO localResult(String decision, int riskScore, String reason,
+                                            List<String> signals) {
+        ModerationResultDTO result = new ModerationResultDTO();
+        result.setDecision(decision);
+        result.setRiskScore(riskScore);
+        result.setSource("LOCAL_RULE");
+        result.setReasons(reason);
+        result.setSignals(signals);
+        return result;
     }
 
     private void ensureNotMuted(Long userId) {
@@ -77,16 +76,6 @@ public class LiveContentModerationService {
             throw e;
         } catch (Exception e) {
             log.warn("禁言状态查询失败，暂按未禁言处理: {}", e.getMessage());
-        }
-    }
-
-    private void muteUser(Long userId, String reason) {
-        if (userId == null) return;
-        try {
-            userClient.mute(userId, muteMinutes);
-            log.info("弹幕违规，已禁言用户 userId={} minutes={} reason={}", userId, muteMinutes, reason);
-        } catch (Exception e) {
-            log.warn("弹幕违规禁言失败 userId={}: {}", userId, e.getMessage());
         }
     }
 }

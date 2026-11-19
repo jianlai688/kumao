@@ -207,8 +207,8 @@ onMounted(loadPackages)
 </script>
 
 <style scoped>
-.stat-card { background: linear-gradient(160deg, #16171c, #111216); border: 1px solid var(--km-border); border-radius: 18px; padding: 22px; text-align: center; }
-.value { font-size: 30px; font-weight: 900; letter-spacing: -1px; color: #f7d774; }
-.label { font-size: 12px; color: var(--km-text-faint); margin-top: 4px; }
+.stat-card { background: linear-gradient(180deg, #fff, #fdfbff); border: 1px solid #ece7f2; border-radius: 16px; padding: 20px 22px; text-align: center; box-shadow: 0 8px 22px rgba(61, 36, 92, .035); }
+.value { font-size: 30px; font-weight: 800; letter-spacing: -.04em; color: var(--km-accent); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; color: #6f657b; margin-top: 5px; }
 .pager { display: flex; justify-content: flex-end; margin-top: 14px; }
 </style>

@@ -42,6 +42,7 @@
               <span>{{ playlist.collected ? '已收藏' : '收藏歌单' }}</span>
             </button>
             <template v-if="isOwner">
+              <button class="btn-ghost" @click="togglePublish">{{ playlist.isPublic ? '取消公开' : '发布到歌单广场' }}</button>
               <button class="btn-ghost" @click="editDialog = true"><el-icon><Edit /></el-icon><span>编辑</span></button>
               <button class="btn-icon danger" title="删除歌单" @click="removePlaylist"><el-icon><Delete /></el-icon></button>
             </template>
@@ -152,7 +153,7 @@ const editDialog = ref(false)
 const editForm = reactive({ name: '', coverUrl: '', description: '', isPublic: 1 })
 
 const fallbackCover = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22252c"/><stop offset="1" stop-color="#101114"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/><text x="200" y="228" font-size="88" text-anchor="middle" fill="#3a3e47">♪</text></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4e8ff"/><stop offset="1" stop-color="#fff2fb"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/><circle cx="200" cy="200" r="80" fill="none" stroke="#d8b8ef" stroke-width="2"/><circle cx="200" cy="200" r="10" fill="#b56bdf"/><text x="200" y="336" font-size="18" text-anchor="middle" fill="#9469ae">KUMAO PLAYLIST</text></svg>'
 )
 
 const isOwner = computed(() => userStore.user?.userId && playlist.value?.userId === userStore.user.userId)
@@ -181,6 +182,13 @@ function playRow(row) {
 
 function playAll() {
   if (playlist.value.songs?.length) playRow(playlist.value.songs[0])
+}
+
+async function togglePublish() {
+  const next = !playlist.value.isPublic
+  await playlistApi.publish(playlist.value.id, next)
+  playlist.value.isPublic = next ? 1 : 0
+  ElMessage.success(next ? '已发布到歌单广场' : '已设为私密')
 }
 
 async function toggleCollect() {

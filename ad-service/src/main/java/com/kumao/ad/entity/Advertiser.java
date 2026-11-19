@@ -17,6 +17,9 @@ public class Advertiser extends BaseEntity {
     /** 艺名 / 主体名称 */
     private String companyName;
     private String realName;
+    private String idCard;
+    private String idCardFrontUrl;
+    private String idCardBackUrl;
     private String adType;
     private String intro;
     private String avatar;

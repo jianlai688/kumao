@@ -13,6 +13,7 @@ import com.kumao.api.dto.SongDTO;
 import com.kumao.comment.dto.CommentRequest;
 import com.kumao.comment.entity.SongComment;
 import com.kumao.comment.mapper.SongCommentMapper;
+import com.kumao.common.constant.ModerationStatus;
 import com.kumao.common.dto.PageQuery;
 import com.kumao.common.exception.BizException;
 import com.kumao.common.result.PageResult;
@@ -20,8 +21,11 @@ import com.kumao.common.result.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -34,13 +38,11 @@ public class CommentService {
     private final ReviewClient reviewClient;
     private final UserClient userClient;
 
-    @Value("${kumao.moderation.mute-minutes:60}")
-    private int muteMinutes;
+    /** AI 风险分达到该值即不自动通过，转管理员复核。 */
     @Value("${kumao.moderation.reject-risk-score:35}")
-    private int rejectRiskScore;
+    private int rejectRiskScore = 35;
 
-    @Transactional(rollbackFor = Exception.class)
-    public Long create(Long userId, String nickname, String avatar, CommentRequest req) {
+    public CommentCreateOutcome create(Long userId, String nickname, String avatar, CommentRequest req) {
         // 校验歌曲存在
         try {
             R<SongDTO> song = musicClient.getSong(req.getSongId());
@@ -53,7 +55,8 @@ public class CommentService {
             log.warn("音乐服务不可用，降级放行评论校验: {}", e.getMessage());
         }
         ensureNotMuted(userId);
-        moderateComment(userId, req.getSongId(), req.getContent());
+        ModerationResultDTO moderation = moderateComment(req.getSongId(), req.getContent());
+        boolean approved = shouldAutoApprove(moderation);
         SongComment comment = new SongComment();
         comment.setSongId(req.getSongId());
         comment.setUserId(userId);
@@ -64,14 +67,16 @@ public class CommentService {
         comment.setReplyUserId(req.getReplyUserId());
         comment.setReplyNickname(req.getReplyNickname());
         comment.setLikeCount(0);
-        comment.setStatus(0);
+        comment.setStatus(approved ? ModerationStatus.APPROVED : ModerationStatus.PENDING);
+        applyModeration(comment, moderation);
         commentMapper.insert(comment);
-        try {
-            musicClient.commentCount(req.getSongId(), 1);
-        } catch (Exception e) {
-            log.warn("更新歌曲评论数失败: {}", e.getMessage());
+        if (approved) {
+            adjustCommentCount(req.getSongId(), 1);
         }
-        return comment.getId();
+        String message = approved
+                ? "评论已通过 AI 审核并发布"
+                : "评论已提交管理员复核，通过后展示";
+        return new CommentCreateOutcome(comment.getId(), approved, message);
     }
 
     private void ensureNotMuted(Long userId) {
@@ -83,39 +88,63 @@ public class CommentService {
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            // 用户服务短暂不可用时不阻断正常评论；违规内容仍由 AI 审核拦截。
+            // 用户服务短暂不可用时不阻断正常评论；内容是否公开仍由 AI 审核决定。
             log.warn("禁言状态查询失败，暂按未禁言处理: {}", e.getMessage());
         }
     }
 
-    private void moderateComment(Long userId, Long songId, String content) {
+    private ModerationResultDTO moderateComment(Long songId, String content) {
         ModerationRequestDTO request = new ModerationRequestDTO();
         request.setCategory("COMMENT");
         request.setItemId(String.valueOf(songId));
         request.setContent(content);
-        ModerationResultDTO result;
         try {
             R<ModerationResultDTO> response = reviewClient.moderate(request);
-            result = response == null ? null : response.getData();
+            ModerationResultDTO result = response == null ? null : response.getData();
+            if (result != null) {
+                return result;
+            }
+            log.warn("评论 AI 审核返回空结果，转管理员复核 songId={}", songId);
         } catch (Exception e) {
-            // AI 审核服务不可用时放行，避免互动功能整体不可用；降级规则在 review-service 内部执行。
-            log.warn("评论 AI 审核不可用，暂按放行处理: {}", e.getMessage());
-            return;
+            // 审核不可用时不能自动放行，保留内容并交给管理员复核。
+            log.warn("评论 AI 审核不可用，转管理员复核 songId={}: {}", songId, e.getMessage());
         }
-        if (result == null) return;
-        boolean violation = "REJECT".equalsIgnoreCase(result.getDecision())
-                || result.getRiskScore() >= rejectRiskScore;
-        if (!violation) return;
-        muteUser(userId, result.getReasons());
-        throw new BizException(403, "评论内容违规，你已被禁言");
+        return unavailableResult();
     }
 
-    private void muteUser(Long userId, String reason) {
+    private boolean shouldAutoApprove(ModerationResultDTO result) {
+        return result != null
+                && "PASS".equalsIgnoreCase(result.getDecision())
+                && result.getRiskScore() < rejectRiskScore;
+    }
+
+    private void applyModeration(SongComment comment, ModerationResultDTO result) {
+        if (result == null) return;
+        comment.setAiDecision(limit(result.getDecision(), 20));
+        comment.setAiRiskScore(result.getRiskScore());
+        comment.setAiSource(limit(result.getSource(), 30));
+        comment.setAiReasons(limit(result.getReasons(), 1000));
+    }
+
+    private ModerationResultDTO unavailableResult() {
+        ModerationResultDTO result = new ModerationResultDTO();
+        result.setDecision("REVIEW");
+        result.setRiskScore(50);
+        result.setSource("UNAVAILABLE");
+        result.setReasons("AI 审核服务暂不可用，已转管理员复核");
+        return result;
+    }
+
+    private String limit(String value, int maxLength) {
+        if (value == null) return null;
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
+    }
+
+    private void adjustCommentCount(Long songId, int delta) {
         try {
-            userClient.mute(userId, muteMinutes);
-            log.info("评论违规，已禁言用户 userId={} minutes={} reason={}", userId, muteMinutes, reason);
+            musicClient.commentCount(songId, delta);
         } catch (Exception e) {
-            log.warn("评论违规禁言失败 userId={}: {}", userId, e.getMessage());
+            log.warn("更新歌曲评论数失败 songId={} delta={}: {}", songId, delta, e.getMessage());
         }
     }
 
@@ -123,7 +152,7 @@ public class CommentService {
         Page<SongComment> page = commentMapper.selectPage(query.toPage(),
                 new LambdaQueryWrapper<SongComment>()
                         .eq(SongComment::getSongId, songId)
-                        .eq(SongComment::getStatus, 0)
+                        .eq(SongComment::getStatus, ModerationStatus.APPROVED)
                         .eq(SongComment::getParentId, 0L)
                         .orderByDesc(SongComment::getCreateTime));
         return PageResult.of(page);
@@ -133,7 +162,7 @@ public class CommentService {
         Page<SongComment> page = commentMapper.selectPage(query.toPage(),
                 new LambdaQueryWrapper<SongComment>()
                         .eq(SongComment::getParentId, parentId)
-                        .eq(SongComment::getStatus, 0)
+                        .eq(SongComment::getStatus, ModerationStatus.APPROVED)
                         .orderByAsc(SongComment::getCreateTime));
         return PageResult.of(page);
     }
@@ -147,6 +176,9 @@ public class CommentService {
             throw new BizException(403, "只能删除自己的评论");
         }
         commentMapper.deleteById(commentId);
+        if (ModerationStatus.isApproved(comment.getStatus())) {
+            adjustCommentCount(comment.getSongId(), -1);
+        }
     }
 
     // ---------------- 后台评论管理 ----------------
@@ -160,22 +192,87 @@ public class CommentService {
         return PageResult.of(page);
     }
 
+    /**
+     * 定时复检「已通过但还没有 AI 记录」的评论：AI 判定 REJECT 的直接封禁（status=1）。
+     */
+    @Scheduled(fixedDelayString = "${kumao.comment.post-review.interval-ms:180000}", initialDelayString = "45000")
+    public void scheduledPostReview() {
+        try {
+            Map<String, Object> summary = rescanApproved(30);
+            if (((Number) summary.get("scanned")).intValue() > 0) {
+                log.info("[评论AI复检] {}", summary);
+            }
+        } catch (Exception e) {
+            log.warn("[评论AI复检] 执行失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 人工/定时触发：复检已通过且无 AI 记录的评论。
+     */
+    public Map<String, Object> rescanApproved(int limit) {
+        int size = Math.max(1, Math.min(limit, 100));
+        List<SongComment> list = commentMapper.selectList(new LambdaQueryWrapper<SongComment>()
+                .eq(SongComment::getStatus, ModerationStatus.APPROVED)
+                .isNull(SongComment::getAiDecision)
+                .orderByDesc(SongComment::getCreateTime)
+                .last("limit " + size));
+        int blocked = 0;
+        int passed = 0;
+        int review = 0;
+        for (SongComment comment : list) {
+            ModerationResultDTO result = moderateComment(comment.getSongId(), comment.getContent());
+            applyModeration(comment, result);
+            String decision = result == null ? "" : result.getDecision();
+            if ("REJECT".equalsIgnoreCase(decision)) {
+                comment.setStatus(ModerationStatus.REJECTED);
+                commentMapper.updateById(comment);
+                adjustCommentCount(comment.getSongId(), -1);
+                blocked++;
+            } else {
+                commentMapper.updateById(comment);
+                if ("PASS".equalsIgnoreCase(decision)) {
+                    passed++;
+                } else {
+                    review++;
+                }
+            }
+        }
+        return Map.of("scanned", list.size(), "blocked", blocked, "passed", passed, "review", review);
+    }
+
     public void updateStatus(Long commentId, Integer status) {
+        if (!ModerationStatus.isValid(status)) {
+            throw new BizException("无效的评论审核状态");
+        }
         SongComment comment = commentMapper.selectById(commentId);
         if (comment == null) {
             throw new BizException("评论不存在");
         }
+        boolean wasApproved = ModerationStatus.isApproved(comment.getStatus());
+        boolean willApprove = ModerationStatus.isApproved(status);
         comment.setStatus(status);
         commentMapper.updateById(comment);
+        if (wasApproved != willApprove) {
+            adjustCommentCount(comment.getSongId(), willApprove ? 1 : -1);
+        }
     }
 
     public void adminDelete(Long commentId) {
+        SongComment comment = commentMapper.selectById(commentId);
+        if (comment == null) return;
         commentMapper.deleteById(commentId);
+        if (ModerationStatus.isApproved(comment.getStatus())) {
+            adjustCommentCount(comment.getSongId(), -1);
+        }
     }
 
     public long countBySong(Long songId) {
         return commentMapper.selectCount(new LambdaQueryWrapper<SongComment>()
-                .eq(SongComment::getSongId, songId).eq(SongComment::getStatus, 0));
+                .eq(SongComment::getSongId, songId).eq(SongComment::getStatus, ModerationStatus.APPROVED));
+    }
+
+    public record CommentCreateOutcome(Long id, boolean approved, String message) {
     }
 
     /** 供 search-service 同步评论热度（可选） */

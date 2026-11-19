@@ -450,7 +450,7 @@
           </button>
         </div>
 
-        <p v-if="channels.mockEnabled && (!channels.alipayEnabled || !channels.wechatEnabled)" class="coin-mock-note">当前环境未配置真实商户，将使用本地模拟支付；支付成功后酷猫币立即到账。</p>
+        <p v-if="channels.mockEnabled && ((coin.method === 'WECHAT' && !channels.wechatEnabled) || (coin.method === 'ALIPAY' && !channels.alipayEnabled))" class="coin-mock-note">当前选择的渠道未配置，将使用本地模拟支付；支付成功后酷猫币立即到账。</p>
         <p v-if="coin.error" class="coin-error" role="alert">{{ coin.error }}</p>
       </div>
 
@@ -889,7 +889,7 @@ async function sendGift(gift) {
     return
   }
   try {
-    await liveApi.sendGift({ roomId: Number(route.params.id), giftId: gift.id, count: 1 })
+    await liveApi.sendGift({ roomId: route.params.id, giftId: gift.id, count: 1 })
     ElMessage.success(`已送出 ${gift.name}`)
     await loadGifts()
   } catch (e) {
@@ -1088,8 +1088,7 @@ onBeforeUnmount(() => {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  max-height: calc(100dvh - 500px);
-  min-height: 300px;
+  min-height: 0;
   background: #050407;
   overflow: hidden;
 }
@@ -1595,59 +1594,59 @@ onBeforeUnmount(() => {
 
 <style>
 .coin-recharge-dialog {
-  background: #111114 !important;
-  border: 1px solid #302c38 !important;
+  background: #fff !important;
+  border: 1px solid #ece7f2 !important;
   border-radius: 16px !important;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, .6) !important;
+  box-shadow: 0 24px 70px rgba(40, 22, 63, .16) !important;
 }
 .coin-recharge-dialog .el-dialog__header { padding: 20px 20px 0; margin: 0; }
-.coin-recharge-dialog .el-dialog__body { padding: 18px 20px 16px; color: #f7f4fc; }
+.coin-recharge-dialog .el-dialog__body { padding: 18px 20px 16px; color: #1d1726; }
 .coin-recharge-dialog .el-dialog__footer { padding: 0 20px 18px; }
-.coin-recharge-dialog .el-dialog__headerbtn .el-dialog__close { color: #918998; }
-.coin-recharge-dialog .el-dialog__headerbtn:hover .el-dialog__close { color: #fff; }
+.coin-recharge-dialog .el-dialog__headerbtn .el-dialog__close { color: #8b8195; }
+.coin-recharge-dialog .el-dialog__headerbtn:hover .el-dialog__close { color: #4f465a; }
 .coin-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.coin-modal-head span { color: #a9a1b4; font-size: 11px; }
-.coin-modal-head h2 { margin: 4px 0 0; color: #f7f4fc; font-size: 21px; font-weight: 650; letter-spacing: -.03em; }
-.coin-modal-head strong { color: #f7f4fc; font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.coin-modal-head small { color: #9a92a4; font-size: 11px; font-weight: 400; }
+.coin-modal-head span { color: #6f657b; font-size: 11px; }
+.coin-modal-head h2 { margin: 4px 0 0; color: #1d1726; font-size: 21px; font-weight: 650; letter-spacing: -.03em; }
+.coin-modal-head strong { color: #1d1726; font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.coin-modal-head small { color: #776d83; font-size: 11px; font-weight: 400; }
 .coin-package-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.coin-package { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: end; padding: 12px; border: 1px solid #39333f; border-radius: 10px; background: #17151b; color: #f7f4fc; text-align: left; cursor: pointer; }
-.coin-package:hover { border-color: #5d4d68; }
-.coin-package.selected { border-color: transparent; background: linear-gradient(120deg, #8b5cf6, #e879f9); }
+.coin-package { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: end; padding: 12px; border: 1px solid #e6deee; border-radius: 10px; background: #fff; color: #1d1726; text-align: left; cursor: pointer; transition: border-color .16s, background .16s, box-shadow .16s; }
+.coin-package:hover { border-color: #d3bce6; background: #fdfbff; }
+.coin-package.selected { border-color: transparent; background: var(--km-grad); color: #fff; box-shadow: 0 8px 20px rgba(112, 53, 160, .16); }
 .coin-package strong { font-size: 24px; line-height: 1; font-weight: 650; font-variant-numeric: tabular-nums; }
-.coin-package > span { color: #a9a1b4; font-size: 10px; }
-.coin-package.selected > span { color: rgba(255, 255, 255, .78); }
-.coin-package em { grid-column: 1 / -1; margin-top: 7px; color: #c7bfd0; font-size: 11px; font-style: normal; }
+.coin-package > span { color: #6f657b; font-size: 10px; }
+.coin-package.selected > span { color: rgba(255, 255, 255, .8); }
+.coin-package em { grid-column: 1 / -1; margin-top: 7px; color: #776d83; font-size: 11px; font-style: normal; }
 .coin-package.selected em { color: #fff; }
-.coin-method-title { margin: 19px 0 8px; color: #a9a1b4; font-size: 11px; }
+.coin-method-title { margin: 19px 0 8px; color: #6f657b; font-size: 11px; }
 .coin-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.coin-method { position: relative; display: flex; align-items: center; gap: 9px; min-height: 54px; padding: 9px 10px; border: 1px solid #39333f; border-radius: 10px; background: #17151b; color: #f7f4fc; text-align: left; cursor: pointer; }
-.coin-method:hover:not(:disabled) { border-color: #5d4d68; }
-.coin-method.selected { border-color: #c084fc; background: #211a2b; }
+.coin-method { position: relative; display: flex; align-items: center; gap: 9px; min-height: 54px; padding: 9px 10px; border: 1px solid #e6deee; border-radius: 10px; background: #fff; color: #1d1726; text-align: left; cursor: pointer; transition: border-color .16s, background .16s; }
+.coin-method:hover:not(:disabled) { border-color: #d3bce6; background: #fdfbff; }
+.coin-method.selected { border-color: var(--km-accent); background: #faf4ff; }
 .coin-method:disabled { opacity: .45; cursor: not-allowed; }
 .coin-method > span:nth-child(2) { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .coin-method b { font-size: 12px; font-weight: 600; }
-.coin-method small { color: #8f8799; font-size: 10px; }
+.coin-method small { color: #776d83; font-size: 10px; }
 .pay-logo { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; }
 .pay-logo.wechat { background: #07c160; }
 .pay-logo.alipay { background: #1677ff; }
-.method-dot { position: absolute; right: 9px; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: #c084fc; opacity: 0; }
+.method-dot { position: absolute; right: 9px; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--km-accent); opacity: 0; }
 .coin-method.selected .method-dot { opacity: 1; }
-.coin-mock-note { margin: 12px 0 0; color: #a99a77; font-size: 10.5px; line-height: 1.55; }
-.coin-error { margin: 11px 0 0; color: #ff9eae; font-size: 11px; line-height: 1.5; }
-.coin-loading { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 240px; color: #a9a1b4; font-size: 12px; }
-.coin-spinner { width: 18px; height: 18px; border: 2px solid #3b3342; border-top-color: #e879f9; border-radius: 50%; animation: coin-spin .8s linear infinite; }
+.coin-mock-note { margin: 12px 0 0; color: #8a5c00; font-size: 10.5px; line-height: 1.55; }
+.coin-error { margin: 11px 0 0; color: #b4233a; font-size: 11px; line-height: 1.5; }
+.coin-loading { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 240px; color: #6f657b; font-size: 12px; }
+.coin-spinner { width: 18px; height: 18px; border: 2px solid #eadcf6; border-top-color: var(--km-accent); border-radius: 50%; animation: coin-spin .8s linear infinite; }
 @keyframes coin-spin { to { transform: rotate(360deg); } }
 .coin-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.coin-modal-foot > span { color: #8f8799; font-size: 10.5px; }
+.coin-modal-foot > span { color: #776d83; font-size: 10.5px; }
 .coin-modal-foot > div { display: flex; align-items: center; gap: 7px; margin-left: auto; }
-.coin-cancel { height: 34px; padding: 0 10px; border: 0; background: transparent; color: #b0a8bb; font-size: 12px; cursor: pointer; }
-.coin-submit { height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: linear-gradient(90deg, #8b5cf6, #e879f9); color: #fff; font-size: 12px; font-weight: 650; cursor: pointer; }
+.coin-cancel { height: 34px; padding: 0 10px; border: 0; background: transparent; color: #6f657b; font-size: 12px; cursor: pointer; }
+.coin-submit { height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--km-grad); color: #fff; font-size: 12px; font-weight: 650; cursor: pointer; }
 .coin-submit:disabled { opacity: .5; cursor: not-allowed; }
 .coin-qr { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0 14px; }
 .coin-qr img { width: 236px; height: 236px; padding: 8px; border-radius: 12px; background: #fff; }
-.coin-qr strong { color: #f7f4fc; font-size: 13px; }
-.coin-qr span { color: #9a92a4; font-size: 11px; }
+.coin-qr strong { color: #1d1726; font-size: 13px; }
+.coin-qr span { color: #776d83; font-size: 11px; }
 @media (max-width: 540px) {
   .coin-recharge-dialog { width: calc(100vw - 24px) !important; margin-top: 6vh; }
   .coin-modal-foot { align-items: flex-start; flex-direction: column; }

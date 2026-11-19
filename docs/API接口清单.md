@@ -31,8 +31,9 @@
 | GET | `/users/me` | 当前用户资料 |
 | PUT | `/users/me` | 修改资料（昵称/头像/简介，三端同步） |
 | GET | `/users/me/login-logs` | 我的登录设备记录 |
-| POST | `/users/anchor/apply` | 主播申请 |
-| GET | `/users/anchor/my` | 我的主播申请记录 |
+| POST | `/users/anchor/apply` | 提交主播认证，必须携带身份证号及正反面照片地址 |
+| GET | `/users/anchor/my` | 我的主播申请记录（含收款账户绑定信息） |
+| PUT | `/users/anchor/profile` | 修改主播资料；可绑定支付宝/微信收款账户（payType/payAccount/payName） |
 | GET | `/users/admin/page` | 后台用户列表 |
 | PUT | `/users/admin/{id}/status` | 启用/禁用账号 |
 | GET | `/users/admin/login-logs` | 后台查询登录设备记录 |
@@ -89,11 +90,11 @@
 |---|---|---|
 | GET | `/comments/song/{songId}` | 歌曲评论分页 |
 | GET | `/comments/{id}/replies` | 评论回复 |
-| POST | `/comments` | 发表评论 |
+| POST | `/comments` | 发表评论；AI 通过自动展示，否则进入待管理员复核 |
 | DELETE | `/comments/{id}` | 删除自己的评论 |
 | GET | `/comments/song/{songId}/count` | 评论数 |
-| GET | `/comments/admin/page` | 后台评论管理 |
-| PUT | `/comments/admin/{id}/status` | 屏蔽/恢复评论 |
+| GET | `/comments/admin/page` | 后台评论管理，可按 `status=0/1/2` 筛选 |
+| PUT | `/comments/admin/{id}/status` | 评论审核状态：0 通过 / 1 驳回屏蔽 / 2 待审核 |
 | DELETE | `/comments/admin/{id}` | 删除评论 |
 | POST/DELETE | `/likes/{songId}` | 添加/取消红心 |
 | GET | `/likes/mine` | 我喜欢的列表 |
@@ -126,17 +127,20 @@
 | POST | `/live/rooms` | 创建直播间（仅主播，支持 scene=INDOOR/OUTDOOR + location） |
 | PUT | `/live/rooms/{id}` | 修改直播间 |
 | GET | `/live/rooms/{id}/push-url` | 获取 SRS 推流/拉流地址；户外返回扫码推流二维码 |
-| POST | `/live/rooms/{id}/start` | 开播 |
-| POST | `/live/rooms/{id}/stop` | 一键下播（生成回放） |
+| GET | `/live/rooms/obs-config` | 主播/管理员：读取本机 OBS WebSocket 地址和密码，用于控制台自动填充 |
+| GET | `/live/rooms/{id}/audience` | 实时观众画像：当前在线登录用户样本的性别/年龄/地区分布 |
+| POST | `/live/rooms/{id}/stop` | 一键下播（停止自动推流并生成回放） |
 | DELETE | `/live/rooms/{id}` | 删除直播间 |
 | GET | `/live/rooms/mine` | 我的直播间 |
 | GET | `/live/rooms/admin/page` | 后台直播间管理 |
 | POST | `/live/rooms/admin/{id}/ban` | 封禁/解封 |
 | GET | `/live/rooms/admin/statistics` | 直播统计 |
-| GET | `/live/danmaku/history/{roomId}` | 弹幕历史分页 |
-| POST | `/live/danmaku/send` | HTTP 发送弹幕（WS 降级通道） |
+| GET | `/live/danmaku/history/{roomId}` | 弹幕历史分页，仅返回已通过弹幕 |
+| POST | `/live/danmaku/send` | HTTP 发送弹幕（WS 降级通道），返回是否自动通过或转人工 |
 | GET | `/live/danmaku/check?content=` | 敏感词预检 |
-| GET/DELETE | `/live/danmaku/admin/**` | 后台弹幕管理 |
+| GET | `/live/danmaku/admin/page` | 后台弹幕管理，可按 `status=0/1/2` 筛选 |
+| PUT | `/live/danmaku/admin/{id}/status` | 弹幕审核状态：0 通过 / 1 驳回屏蔽 / 2 待审核 |
+| DELETE | `/live/danmaku/admin/{id}` | 删除弹幕 |
 | GET | `/live/gifts` | 礼物列表 |
 | GET | `/live/gifts/balance` | 我的虚拟币余额 |
 | POST | `/live/gifts/recharge?amount=` | 模拟充值 |
@@ -146,8 +150,9 @@
 | GET/POST/PUT/DELETE | `/live/gifts/admin/**` | 后台礼物配置 |
 | GET | `/internal/live/gift-income?anchorId=` | 内部：礼物收益 |
 | GET | `/internal/live/rooms/{id}` | 内部：直播间信息（供 musician-service） |
-| WS | `/ws/live?roomId=&token=` | 弹幕 WebSocket；同时下发 `STREAM_STATUS` 开播/断流事件 |
+| WS | `/ws/live?roomId=&token=` | 弹幕与实时状态 WebSocket：`STREAM_STATUS`、`ROOM_METRICS`、`NOW_PLAYING`（主播控制台实时同步当前歌曲/进度/队列） |
 | POST | `/live/rooms/dvr-callback` | SRS 录制回调（生成回放） |
+| POST | `/live/rooms/{id}/start` | 开播；`skipAutoPush=true` 时跳过 ffmpeg 演示推流（OBS 已接管）；SRS 无现成推流时自动启动演示推流 |
 
 ## 8. search-service（8107）
 
@@ -188,7 +193,7 @@
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| POST | `/musician/apply` | 入驻认证申请 |
+| POST | `/musician/apply` | 入驻认证申请，必须携带身份证号及正反面照片地址 |
 | GET | `/musician/mine` | 我的音乐人信息 |
 | GET | `/musician/page` | 音乐人列表 |
 | GET | `/musician/{id}/homepage` | 音乐人主页（作品/专辑/粉丝） |
@@ -212,7 +217,7 @@
 |---|---|---|
 | GET | `/ad/active?slot=` | 按广告位获取在投广告 |
 | POST | `/ad/report/{planId}?action=` | 曝光/点击上报 |
-| POST | `/ad/apply` | 入驻认证申请 |
+| POST | `/ad/apply` | 入驻认证申请，必须携带身份证号及正反面照片地址 |
 | GET | `/ad/mine` | 我的广告制作人信息 |
 | GET/POST/PUT/DELETE | `/ad/materials/**` | 素材管理 |
 | GET/POST | `/ad/plans/**` | 投放计划（新建/暂停/续投/终止） |
@@ -220,7 +225,7 @@
 | GET | `/ad/statistics/rank` | 素材数据排行 |
 | GET | `/ad/statistics/region` | 地域分布 |
 | GET | `/ad/statistics/hourly` | 分时段趋势 |
-| GET/POST | `/ad/admin/**` | 后台审核、投放审核、投放收入汇总 |
+| GET/POST | `/ad/admin/**` | 后台审核、投放审核、在投计划暂停/续投/终止、投放收入汇总 |
 
 ## 12. review-service（8111）
 

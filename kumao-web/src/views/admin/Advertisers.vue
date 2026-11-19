@@ -20,7 +20,16 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="intro" label="简介" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="intro" label="简介" min-width="180" show-overflow-tooltip />
+          <el-table-column label="身份证认证" width="170">
+            <template #default="{ row }">
+              <IdCardPreview
+                :front="row.idCardFrontUrl"
+                :back="row.idCardBackUrl"
+                :number="row.idCard"
+              />
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="110">
             <template #default="{ row }">
               <el-tag size="small" :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
@@ -78,11 +87,14 @@
         <el-radio-group v-model="planStatus" size="small" @change="loadPlans" style="margin-bottom:12px">
           <el-radio-button value="PENDING">待审核</el-radio-button>
           <el-radio-button value="RUNNING">投放中</el-radio-button>
+          <el-radio-button value="PAUSED">已暂停</el-radio-button>
           <el-radio-button value="">全部</el-radio-button>
         </el-radio-group>
         <el-table :data="plans">
           <el-table-column prop="materialName" label="素材" min-width="180" />
-          <el-table-column prop="slot" label="广告位" width="130" />
+          <el-table-column label="广告位" width="140">
+            <template #default="{ row }">{{ slotText(row.slot) }}</template>
+          </el-table-column>
           <el-table-column label="投放时段" min-width="240">
             <template #default="{ row }">{{ (row.startTime || '').replace('T', ' ').slice(0, 16) }} ~ {{ (row.endTime || '').replace('T', ' ').slice(0, 16) }}</template>
           </el-table-column>
@@ -108,9 +120,43 @@
                 </template>
                 <span v-else class="km-faint">等待用户支付</span>
               </template>
+              <template v-else-if="row.status === 'RUNNING'">
+                <el-button size="small" plain type="warning" @click="adminPlanAction(row, 'PAUSE')">暂停</el-button>
+                <el-button size="small" plain type="danger" @click="adminPlanAction(row, 'FINISH')">终止</el-button>
+              </template>
+              <template v-else-if="row.status === 'PAUSED'">
+                <el-button size="small" plain type="success" @click="adminPlanAction(row, 'RESUME')">续投</el-button>
+                <el-button size="small" plain type="danger" @click="adminPlanAction(row, 'FINISH')">终止</el-button>
+              </template>
             </template>
           </el-table-column>
         </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="投流定价" name="pricing">
+        <div class="pricing-panel">
+          <div class="pricing-head">
+            <div>
+              <b>广告位日单价</b>
+              <p>新建投流计划将按这里配置的日单价 × 投放天数计费；调整价格不会改变已经创建的计划。</p>
+            </div>
+            <el-button type="primary" :loading="pricingSaving" @click="savePricing">保存价格</el-button>
+          </div>
+          <el-table v-loading="pricingLoading" :data="pricingRows" style="width:100%">
+            <el-table-column label="广告位" width="220">
+              <template #default="{ row }"><b>{{ slotText(row.slot) }}</b></template>
+            </el-table-column>
+            <el-table-column label="日单价（元 / 天）" width="260">
+              <template #default="{ row }">
+                <el-input-number v-model="row.dailyPrice" :min="0.01" :max="1000000" :precision="2" :step="10" controls-position="right" style="width:180px" />
+              </template>
+            </el-table-column>
+            <el-table-column label="计费规则">
+              <template #default>投流费用 = 投放天数 × 日单价，按天向上取整</template>
+            </el-table-column>
+          </el-table>
+          <p class="pricing-tip">价格保存后，广告主下次打开「新建投流计划」时立即使用新价格；已支付或待支付的旧计划保持原金额。</p>
+        </div>
       </el-tab-pane>
 
       <el-tab-pane label="投放收入" name="revenue">
@@ -142,6 +188,8 @@
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adApi } from '@/api'
+import IdCardPreview from '@/components/IdCardPreview.vue'
+import { adSlotLabel } from '@/constants/adSlot'
 
 const tab = ref('apply')
 const list = ref([])
@@ -152,10 +200,13 @@ const plans = ref([])
 const planStatus = ref('PENDING')
 const revenue = ref({})
 const paidPlans = ref([])
+const pricingRows = ref([])
+const pricingLoading = ref(false)
+const pricingSaving = ref(false)
 
 const statusText = (s) => ({ PENDING: '待审核', APPROVED: '已通过', REJECTED: '已拒绝', OFFLINE: '已下架', RUNNING: '投放中', PAUSED: '已暂停', FINISHED: '已终止' }[s] || s)
 const statusType = (s) => ({ PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', OFFLINE: 'info', RUNNING: 'success', PAUSED: 'info', FINISHED: 'info' }[s] || 'info')
-const slotText = (s) => ({ SPLASH: '开屏', HOME_BANNER: '首页Banner', LIVE: '直播页', PLAYER: '播放页' }[s] || s)
+const slotText = adSlotLabel
 const formatMoney = (n) => Number(n || 0).toFixed(2)
 
 async function load() {
@@ -174,6 +225,37 @@ async function loadRevenue() {
   const [r, p] = await Promise.all([adApi.adminRevenue(), adApi.adminPlans({ pageNum: 1, pageSize: 100 })])
   revenue.value = r.data || {}
   paidPlans.value = (p.data?.records || []).filter((row) => row.paymentStatus === 'PAID')
+}
+
+async function loadPricing() {
+  pricingLoading.value = true
+  try {
+    const res = await adApi.adminPricing()
+    pricingRows.value = (res.data || []).map((item) => ({
+      slot: item.slot,
+      dailyPrice: Number(item.dailyPrice) || 0
+    }))
+  } finally {
+    pricingLoading.value = false
+  }
+}
+
+async function savePricing() {
+  if (pricingRows.value.some((row) => !(Number(row.dailyPrice) > 0))) {
+    ElMessage.warning('所有广告位日单价都必须大于 0')
+    return
+  }
+  pricingSaving.value = true
+  try {
+    await adApi.updateAdminPricing(pricingRows.value.map((row) => ({
+      slot: row.slot,
+      dailyPrice: Number(row.dailyPrice)
+    })))
+    ElMessage.success('投流价格已保存，新计划立即生效')
+    await loadPricing()
+  } finally {
+    pricingSaving.value = false
+  }
 }
 
 async function audit(row, approved) {
@@ -217,9 +299,27 @@ async function auditPlan(row, approved) {
   await loadPlans()
 }
 
+async function adminPlanAction(row, action) {
+  const label = { PAUSE: '暂停', RESUME: '续投', FINISH: '终止' }[action] || action
+  const tip = action === 'FINISH'
+    ? `终止后广告将立即停止展示，已产生的投流费用不予退还。确定终止「${row.materialName}」的投放计划吗？`
+    : `确定要${label}「${row.materialName}」的投放计划吗？`
+  try {
+    await ElMessageBox.confirm(tip, `${label}投放计划`, {
+      type: action === 'FINISH' ? 'warning' : 'info',
+      confirmButtonText: `确定${label}`,
+      cancelButtonText: '取消'
+    })
+  } catch (e) { return }
+  await adApi.adminPlanAction(row.id, action)
+  ElMessage.success(`已${label}`)
+  await loadPlans()
+}
+
 watch(tab, (v) => {
   if (v === 'materials') loadMaterials()
   if (v === 'plans') loadPlans()
+  if (v === 'pricing') loadPricing()
   if (v === 'revenue') loadRevenue()
 })
 
@@ -231,8 +331,13 @@ onMounted(load)
 .u-name { font-weight: 600; }
 .u-sub { font-size: 12px; color: var(--km-text-dim); }
 .w-cover { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
-.stat-card { background: linear-gradient(160deg, #16171c, #111216); border: 1px solid var(--km-border); border-radius: 18px; padding: 22px; text-align: center; }
-.value { font-size: 30px; font-weight: 900; letter-spacing: -1px; color: var(--km-accent); }
-.label { font-size: 12px; color: var(--km-text-faint); margin-top: 4px; }
+.stat-card { background: linear-gradient(180deg, #fff, #fdfbff); border: 1px solid #ece7f2; border-radius: 16px; padding: 20px 22px; text-align: center; box-shadow: 0 8px 22px rgba(61, 36, 92, .035); }
+.value { font-size: 30px; font-weight: 800; letter-spacing: -.04em; color: var(--km-accent); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; color: #6f657b; margin-top: 5px; }
 .revenue-note { margin: 14px 0 0; font-size: 12px; }
+.pricing-panel { padding: 20px; border: 1px solid var(--km-border); border-radius: 14px; background: var(--km-card); }
+.pricing-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+.pricing-head b { font-size: 15px; }
+.pricing-head p { max-width: 700px; margin: 6px 0 0; color: var(--km-text-dim); font-size: 12px; line-height: 1.7; }
+.pricing-tip { margin: 16px 0 0; padding: 10px 12px; border-radius: 8px; background: #faf7fd; color: var(--km-text-faint); font-size: 11.5px; line-height: 1.6; }
 </style>

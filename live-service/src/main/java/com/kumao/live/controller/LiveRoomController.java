@@ -8,8 +8,12 @@ import com.kumao.common.security.UserContext;
 import com.kumao.live.dto.RoomRequest;
 import com.kumao.live.dto.RoomVO;
 import com.kumao.live.entity.LiveRoom;
+import com.kumao.live.entity.LiveSettlement;
 import com.kumao.live.service.LiveRoomService;
+import com.kumao.live.service.LiveSettlementService;
+import com.kumao.live.service.ObsConfigService;
 import com.kumao.live.service.PushAuthService;
+import com.kumao.live.service.AudienceService;
 import com.kumao.live.support.QrCodeUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +29,21 @@ public class LiveRoomController {
 
     private final LiveRoomService roomService;
     private final PushAuthService pushAuthService;
+    private final LiveSettlementService settlementService;
+    private final ObsConfigService obsConfigService;
+    private final AudienceService audienceService;
+
+    /** 主播的结算单列表（最近 50 场） */
+    @GetMapping("/settlements/mine")
+    public R<List<LiveSettlement>> mySettlements() {
+        return R.ok(settlementService.mine(UserContext.requireUserId()));
+    }
+
+    /** 指定直播间的最近一场结算单 */
+    @GetMapping("/{id}/settlement")
+    public R<LiveSettlement> roomSettlement(@PathVariable Long id) {
+        return R.ok(settlementService.byRoom(id));
+    }
 
     @GetMapping("/square")
     public R<PageResult<RoomVO>> square(PageQuery query,
@@ -96,9 +115,35 @@ public class LiveRoomController {
         return R.ok(result);
     }
 
+    /** 实时观众画像：当前在线登录用户的性别/年龄/地区分布 */
+    @GetMapping("/{id}/audience")
+    public R<Map<String, Object>> audience(@PathVariable Long id) {
+        UserContext.requireUserId();
+        return R.ok(audienceService.snapshot(id));
+    }
+
+    /** 获取本机 OBS WebSocket 配置（仅主播/管理员），用于控制台自动填充 */
+    @GetMapping("/obs-config")
+    public R<java.util.Map<String, Object>> obsConfig() {
+        UserContext.requireUserId();
+        var user = UserContext.get();
+        if (user == null || !user.hasRole("ANCHOR", "ADMIN")) {
+            throw new com.kumao.common.exception.BizException(403, "仅主播可读取 OBS 配置");
+        }
+        return R.ok(obsConfigService.config());
+    }
+
+    /** 开播前设置直播歌单（主播本人） */
+    @PutMapping("/{id}/playlist")
+    public R<LiveRoom> updatePlaylist(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        roomService.updatePlaylist(id, UserContext.requireUserId(), body.get("songIds"));
+        return R.ok(roomService.require(id));
+    }
+
     @PostMapping("/{id}/start")
-    public R<LiveRoom> start(@PathVariable Long id) {
-        return R.ok(roomService.start(id, UserContext.requireUserId()));
+    public R<LiveRoom> start(@PathVariable Long id,
+                             @RequestParam(defaultValue = "false") boolean skipAutoPush) {
+        return R.ok(roomService.start(id, UserContext.requireUserId(), skipAutoPush));
     }
 
     /** 直播间点赞（仅登录用户） */

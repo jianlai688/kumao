@@ -50,6 +50,16 @@ export const usePlayerStore = defineStore('player', {
           .catch(() => {})
       }
     },
+    prime(song, list) {
+      if (!song || this.current) return
+      const tracks = list && list.length ? list : [song]
+      this.playlist = tracks
+      this.index = Math.max(0, tracks.findIndex((s) => String(s.id) === String(song.id)))
+      this.current = song
+      this.playing = false
+      this.progress = 0
+      this.duration = Number(song.duration) || 0
+    },
     loadLyric(songId) {
       this.lyric = []
       this.lyricIndex = 0
@@ -120,6 +130,11 @@ export const usePlayerStore = defineStore('player', {
     cycleMode() {
       const index = MODES.indexOf(this.mode)
       this.mode = MODES[(index + 1) % MODES.length]
+      localStorage.setItem('km_play_mode', this.mode)
+    },
+    setMode(mode) {
+      if (!MODES.includes(mode)) return
+      this.mode = mode
       localStorage.setItem('km_play_mode', this.mode)
     },
     setQuality(quality) {

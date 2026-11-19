@@ -10,8 +10,8 @@ android {
         applicationId 'com.kumao.music'
         minSdk 23
         targetSdk 34
-        versionCode 142
-        versionName '1.4.2'
+        versionCode 152
+        versionName '1.5.2'
     }
 
     compileOptions {
@@ -29,6 +29,8 @@ android {
         }
     }
 }
+
+
 
 
 

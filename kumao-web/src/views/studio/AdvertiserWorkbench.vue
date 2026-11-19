@@ -4,7 +4,7 @@
     <div class="wb-hero">
       <div class="hero-glow"></div>
       <div class="wb-left">
-        <span class="wb-emoji">📣</span>
+        <span class="wb-emoji" aria-hidden="true"><el-icon><Promotion /></el-icon></span>
         <div class="wb-copy">
           <div class="wb-eyebrow">AD STUDIO</div>
           <h1 class="wb-title">{{ advertiser?.companyName || '广告制作人工作台' }}</h1>
@@ -17,6 +17,7 @@
           </div>
         </div>
       </div>
+      <button class="button button-quiet" style="margin-right:8px" @click="profileOpen = true">编辑资料</button>
       <button class="btn-accent" @click="openMaterialDialog()">
         <el-icon><Upload /></el-icon>上传广告素材
       </button>
@@ -69,15 +70,15 @@
       <el-tab-pane label="投流管理" name="plans">
         <div class="stats-row">
           <div class="stat-card">
-            <div class="stat-ico">💸</div>
+            <div class="stat-ico"><el-icon><Money /></el-icon></div>
             <div class="stat-body"><div class="stat-value">¥{{ formatMoney(planSummary.spend) }}</div><div class="stat-label">累计投流费用</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-ico">🚀</div>
+            <div class="stat-ico"><el-icon><Promotion /></el-icon></div>
             <div class="stat-body"><div class="stat-value accent">{{ planSummary.running }}</div><div class="stat-label">投放中计划</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-ico">👁️</div>
+            <div class="stat-ico"><el-icon><View /></el-icon></div>
             <div class="stat-body"><div class="stat-value">{{ formatNum(planSummary.exposure) }}</div><div class="stat-label">累计投流曝光</div></div>
           </div>
         </div>
@@ -131,19 +132,19 @@
       <el-tab-pane label="数据统计" name="stats">
         <div class="stats-row">
           <div class="stat-card">
-            <div class="stat-ico">👁️</div>
+            <div class="stat-ico"><el-icon><View /></el-icon></div>
             <div class="stat-body"><div class="stat-value">{{ formatNum(stats.exposure || 0) }}</div><div class="stat-label">总曝光量</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-ico">🖱️</div>
+            <div class="stat-ico"><el-icon><Pointer /></el-icon></div>
             <div class="stat-body"><div class="stat-value accent">{{ formatNum(stats.click || 0) }}</div><div class="stat-label">总点击量</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-ico">📈</div>
+            <div class="stat-ico"><el-icon><TrendCharts /></el-icon></div>
             <div class="stat-body"><div class="stat-value">{{ stats.ctr || '0%' }}</div><div class="stat-label">点击率 CTR</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-ico">🗂️</div>
+            <div class="stat-ico"><el-icon><FolderOpened /></el-icon></div>
             <div class="stat-body"><div class="stat-value">{{ stats.materialCount || 0 }}</div><div class="stat-label">素材数量</div></div>
           </div>
         </div>
@@ -270,7 +271,7 @@
             <i class="withdraw-channel-dot" aria-hidden="true"></i>
           </button>
         </div>
-        <p v-if="planPayChannels.mockEnabled && (!planPayChannels.alipayEnabled || !planPayChannels.wechatEnabled)" class="plan-pay-note">当前环境未配置真实商户，将使用本地模拟支付；支付成功后才可提交审核。</p>
+        <p v-if="planPayChannels.mockEnabled && ((planPay.method === 'WECHAT' && !planPayChannels.wechatEnabled) || (planPay.method === 'ALIPAY' && !planPayChannels.alipayEnabled))" class="plan-pay-note">当前选择的渠道未配置，将使用本地模拟支付；支付成功后才可提交审核。</p>
         <p v-if="planPay.error" class="plan-pay-error" role="alert">{{ planPay.error }}</p>
       </template>
       <template #footer>
@@ -280,14 +281,17 @@
     </el-dialog>
 
   </div>
+    <RoleProfileDialog v-model="profileOpen" type="advertiser" :record="advertiser || {}" @saved="loadBase" />
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Plus } from '@element-plus/icons-vue'
+import { Upload, Plus, Money, Promotion, View, Pointer, TrendCharts, FolderOpened } from '@element-plus/icons-vue'
 import { adApi, fileApi, vipApi } from '@/api'
 import EChart from '@/components/EChart.vue'
+import RoleProfileDialog from '@/components/RoleProfileDialog.vue'
+import { adSlotLabel } from '@/constants/adSlot'
 
 function formatNum(n) {
   n = Number(n) || 0
@@ -297,6 +301,7 @@ function formatNum(n) {
 
 const tab = ref('materials')
 const advertiser = ref(null)
+const profileOpen = ref(false)
 const materials = ref([])
 const plans = ref([])
 const stats = ref({})
@@ -327,7 +332,7 @@ const planSummary = computed(() => {
 const typeText = (t) => ({ AUDIO: '音频广告', VIDEO: '视频广告', IMAGE_TEXT: '图文广告' }[t] || t)
 const statusText = (s) => ({ PENDING: '待审核', APPROVED: '已通过', REJECTED: '未通过', OFFLINE: '已下架' }[s] || s)
 const statusType = (s) => ({ PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', OFFLINE: 'info' }[s] || 'info')
-const slotText = (s) => ({ SPLASH: '开屏', HOME_BANNER: '首页Banner', LIVE: '直播页', PLAYER: '播放页' }[s] || s)
+const slotText = adSlotLabel
 const planStatusText = (s) => ({ PENDING: '待审核', RUNNING: '投放中', PAUSED: '已暂停', FINISHED: '已终止', REJECTED: '已拒绝' }[s] || s)
 const planStatusType = (s) => ({ PENDING: 'warning', RUNNING: 'success', PAUSED: 'info', FINISHED: 'info', REJECTED: 'danger' }[s] || 'info')
 const planDisplayStatus = (row) => row.paymentStatus === 'UNPAID' ? '待支付' : planStatusText(row.status)
@@ -670,6 +675,23 @@ onMounted(async () => {
   font-size: 10.5px;
 }
 
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 15px;
+  border: 1px solid #e4d9ee;
+  border-radius: 9px;
+  background: #fff;
+  color: #5f5769;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .16s, border-color .16s;
+}
+.button:hover:not(:disabled) { background: #faf6fe; border-color: #d6c3e5; color: #2b2334; }
 .btn-accent {
   display: inline-flex;
   align-items: center;
@@ -753,26 +775,45 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(160deg, #16171c, #111216);
-  border: 1px solid var(--km-border);
-  border-radius: 16px;
-  padding: 18px;
+  min-height: 84px;
+  padding: 16px 18px;
+  border: 1px solid #ebe5f1;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #fff 0%, #fdfbff 100%);
+  box-shadow: 0 8px 22px rgba(61, 36, 92, .035);
+  transition: border-color .18s, box-shadow .18s, transform .18s;
+}
+.stat-card:hover {
+  border-color: #ddc9ee;
+  box-shadow: 0 10px 26px rgba(61, 36, 92, .07);
+  transform: translateY(-1px);
 }
 .stat-ico {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: rgba(192, 132, 252, .08);
-  border: 1px solid rgba(192, 132, 252, .16);
-  font-size: 16px;
+  border: 1px solid #eadcf6;
+  background: #f8f0ff;
+  color: #8b3fce;
+  font-size: 17px;
   flex-shrink: 0;
 }
+.stat-card:nth-child(2) .stat-ico { background: #ecfaf3; border-color: #d8f1e2; color: #0d8a61; }
+.stat-card:nth-child(3) .stat-ico { background: #fff7e8; border-color: #f6e5c4; color: #b7791f; }
+.stat-card:nth-child(4) .stat-ico { background: #eef6ff; border-color: #dbe9fb; color: #2f6fbe; }
 .stat-body { min-width: 0; }
-.stat-value { font-size: 22px; font-weight: 900; letter-spacing: -.8px; line-height: 1.2; }
-.stat-value.accent { color: var(--km-accent); }
-.stat-label { font-size: 11.5px; color: var(--km-text-faint); margin-top: 3px; }
+.stat-value {
+  color: #211a2a;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -.035em;
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+}
+.stat-value.accent { color: #8b3fce; }
+.stat-label { margin-top: 5px; color: #6f657b; font-size: 11.5px; }
 
 .panel {
   background: var(--km-card);

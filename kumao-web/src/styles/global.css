@@ -517,47 +517,48 @@ html.dark {
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select__wrapper {
-  background-color: rgba(255, 255, 255, .045) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .08) inset !important;
-  border-radius: 10px !important;
+  background-color: #fff !important;
+  box-shadow: 0 0 0 1px #e8e2ef inset !important;
+  border-radius: 9px !important;
   transition: box-shadow .18s, background-color .18s;
 }
 .el-input__wrapper:hover,
 .el-select__wrapper:hover,
-.el-textarea__inner:hover { box-shadow: 0 0 0 1px rgba(255, 255, 255, .16) inset !important; }
+.el-textarea__inner:hover { box-shadow: 0 0 0 1px #d9cde7 inset !important; }
 .el-input__wrapper.is-focus,
 .el-select__wrapper.is-focused {
-  box-shadow: 0 0 0 1px var(--km-accent-line) inset !important;
-  background-color: rgba(255, 255, 255, .055) !important;
+  box-shadow: 0 0 0 1px #b766e8 inset !important;
+  background-color: #fff !important;
 }
 
 /* 表格 */
 .el-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-header-bg-color: rgba(255, 255, 255, .03);
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, .05);
-  --el-table-border-color: rgba(255, 255, 255, .06);
+  --el-table-header-bg-color: #fbf9fd;
+  --el-table-row-hover-bg-color: #faf6fe;
+  --el-table-border-color: #f0ebf4;
   background: transparent !important;
   border-radius: 12px;
+  color: var(--km-text);
 }
 .el-table th.el-table__cell {
-  background: rgba(255, 255, 255, .03) !important;
+  background: #fbf9fd !important;
   font-weight: 600;
-  color: var(--km-text-dim) !important;
+  color: #6f657b !important;
   font-size: 12px;
 }
-.el-table td.el-table__cell { border-bottom: 1px solid rgba(255, 255, 255, .05) !important; }
+.el-table td.el-table__cell { border-bottom: 1px solid #f1ecf5 !important; }
 .el-table__inner-wrapper::before { display: none; }
 .el-table .el-table__row { transition: background-color .18s ease; }
-.el-table .el-table__row:hover > td.el-table__cell { background: rgba(216, 180, 254, .045) !important; }
+.el-table .el-table__row:hover > td.el-table__cell { background: #faf6fe !important; }
 
 /* 弹窗 / 抽屉 */
 .el-dialog, .el-drawer {
-  background: #14111b !important;
-  border: 1px solid rgba(255, 255, 255, .1);
-  border-radius: 20px !important;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, .56);
+  background: #fff !important;
+  border: 1px solid #ece5f3;
+  border-radius: 18px !important;
+  box-shadow: 0 28px 72px rgba(44, 27, 61, .22);
 }
 .el-dialog__header { padding-bottom: 8px; }
 .el-dialog__title { font-weight: 600; color: var(--km-text) !important; }
@@ -569,26 +570,26 @@ html.dark {
 .el-tabs__nav-wrap::after { background: rgba(255, 255, 255, .06); height: 1px; }
 
 /* 分页 */
-.el-pagination { --el-pagination-bg-color: transparent; --el-pagination-button-bg-color: rgba(255,255,255,.05); }
-.el-pagination.is-background .el-pager li { border-radius: 8px; background: rgba(255, 255, 255, .04); }
+.el-pagination { --el-pagination-bg-color: transparent; --el-pagination-button-bg-color: #f7f3fb; }
+.el-pagination.is-background .el-pager li { border-radius: 8px; background: #f7f3fb; color: var(--km-text-dim); }
 .el-pagination.is-background .el-pager li.is-active {
-  background: rgba(216, 180, 254, .14);
-  color: var(--km-text);
+  background: #f5ecff;
+  color: var(--km-brand-violet-dark);
   font-weight: 600;
-  border: 1px solid var(--km-accent-line);
+  border: 1px solid #ddc6f4;
 }
 
 /* 下拉 / 弹层 */
 .el-popper.is-light, .el-dropdown__popper, .el-select__popper {
-  background: #17141d !important;
-  border: 1px solid rgba(255, 255, 255, .1) !important;
+  background: #fff !important;
+  border: 1px solid #ece5f3 !important;
   border-radius: 12px !important;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, .52) !important;
+  box-shadow: 0 18px 42px rgba(55, 36, 76, .14) !important;
 }
-.el-dropdown-menu__item:hover { background: rgba(255, 255, 255, .06) !important; color: var(--km-text) !important; }
+.el-dropdown-menu__item:hover { background: #f7f1fc !important; color: var(--km-text) !important; }
 
 /* 消息 */
-.el-message { background: #17141d; border-color: rgba(255, 255, 255, .1); }
+.el-message { background: #fff; border-color: #ece5f3; box-shadow: 0 14px 38px rgba(44, 27, 61, .14); }
 .el-message__content { color: var(--km-text) !important; }
 
 /* 空状态 */
@@ -597,21 +598,21 @@ html.dark {
 .el-empty__description p { color: var(--km-text-faint); font-size: 13px; }
 
 /* 滑块 */
-.el-slider__runway { background: rgba(255, 255, 255, .12); height: 4px; }
-.el-slider__bar { background: var(--km-accent); height: 4px; }
-.el-slider__button { width: 12px; height: 12px; border: none; background: #f0abfc; box-shadow: 0 0 0 4px rgba(192, 132, 252, .14); }
+.el-slider__runway { background: #eee9f3; height: 4px; }
+.el-slider__bar { background: var(--km-brand-violet); height: 4px; }
+.el-slider__button { width: 12px; height: 12px; border: 2px solid var(--km-brand-violet); background: #fff; box-shadow: none; }
 
 /* 单选按钮组 */
 .el-radio-button__inner {
-  background: rgba(255, 255, 255, .04);
-  border-color: rgba(255, 255, 255, .08) !important;
+  background: #fff;
+  border-color: #e8e2ef !important;
   color: var(--km-text-dim);
   box-shadow: none !important;
 }
 .el-radio-button__original-radio:checked + .el-radio-button__inner {
-  background: rgba(216, 180, 254, .12);
-  border-color: var(--km-accent-line) !important;
-  color: var(--km-text);
+  background: #f5ecff;
+  border-color: #ddc6f4 !important;
+  color: var(--km-brand-violet-dark);
   font-weight: 600;
 }
 
@@ -632,7 +633,700 @@ button, input, textarea, select { font: inherit; }
   .km-page { padding: 16px 16px calc(var(--km-player-h) + 34px); }
   .km-title { font-size: 20px; }
   .km-card { padding: 16px; border-radius: 16px; }
-  .el-table { min-width: 680px; }
+  .el-table { min-width: 0; }
+}
+
+/* ============================================================
+   用户端 · 浅色音乐空间
+   参考稿：白面 / 淡紫画布 / 紫粉强调只在操作与数据上
+   仅作用于 UserLayout，不影响管理后台与创作者工作台
+   ============================================================ */
+
+body.km-user-theme {
+  --km-bg: #f7f5fb;
+  --km-bg-soft: #fbf9fe;
+  --km-card: #ffffff;
+  --km-card-2: #faf8fd;
+  --km-elevated: #ffffff;
+  --km-border: #ece7f2;
+  --km-border-strong: #ddd4e8;
+  --km-glass-border: none;
+
+  --km-text: #1d1726;
+  --km-text-dim: #5f5769;
+  --km-text-faint: #786f85;
+
+  --km-accent-ink: var(--km-brand-violet);
+  --km-accent-soft: color-mix(in srgb, var(--km-accent) 12%, #fff);
+  --km-accent-line: color-mix(in srgb, var(--km-accent) 30%, #fff);
+  --km-grad-soft: linear-gradient(96deg, color-mix(in srgb, var(--km-accent) 12%, #fff), color-mix(in srgb, var(--km-accent) 5%, #fff));
+  --km-glow: color-mix(in srgb, var(--km-accent) 26%, transparent);
+
+  --km-brand-violet: var(--km-accent);
+  --km-brand-violet-dark: color-mix(in srgb, var(--km-accent) 58%, #390d56 42%);
+  --km-brand-violet-soft: color-mix(in srgb, var(--km-accent) 10%, #fff);
+  --km-brand-pink: color-mix(in srgb, var(--km-accent) 60%, #ec4899 40%);
+  --km-brand-grad: linear-gradient(96deg, var(--km-brand-violet-dark) 0%, var(--km-brand-violet) 55%, var(--km-brand-pink) 100%);
+  --km-grad: var(--km-brand-grad);
+
+  --km-positive: #0d8a61;
+  --km-warning: #b45309;
+  --km-negative: #d61f4c;
+  --km-shadow: 0 18px 50px rgba(61, 36, 92, .12);
+
+  --km-sidebar-w: 208px;
+  --km-topbar-h: 64px;
+  --km-player-h: 88px;
+
+  background: var(--km-bg);
+  color: var(--km-text);
+}
+
+body.km-user-theme::before { background: none; }
+
+body.km-user-theme ::selection { background: #efdcff; color: #291337; }
+
+body.km-user-theme :focus-visible {
+  outline-color: #8b3fce;
+  outline-offset: 2px;
+}
+
+body.km-user-theme ::-webkit-scrollbar-thumb { background: rgba(62, 41, 84, .16); background-clip: content-box; }
+body.km-user-theme ::-webkit-scrollbar-thumb:hover { background: rgba(62, 41, 84, .27); background-clip: content-box; }
+
+body.km-user-theme .km-card {
+  background: var(--km-card);
+  border-color: var(--km-border);
+  box-shadow: 0 10px 30px rgba(61, 36, 92, .045);
+}
+body.km-user-theme .km-card::before { display: none; }
+body.km-user-theme .km-card:hover {
+  border-color: #e3d7f0;
+  box-shadow: 0 14px 36px rgba(61, 36, 92, .07);
+  transform: none;
+}
+
+body.km-user-theme .km-chip {
+  background: #fff;
+  border-color: var(--km-border);
+  color: var(--km-text-dim);
+}
+body.km-user-theme .km-chip:hover { border-color: var(--km-border-strong); color: var(--km-text); }
+body.km-user-theme .km-chip.active {
+  background: var(--km-brand-violet-soft);
+  border-color: #ddc6f4;
+  color: var(--km-brand-violet-dark);
+}
+
+body.km-user-theme .km-row:hover { background: #f8f4fc; }
+body.km-user-theme .km-row-cover { background: #f1ecf6; }
+body.km-user-theme .km-row-name { color: var(--km-text); }
+body.km-user-theme .km-row-sub { color: var(--km-text-faint); }
+body.km-user-theme .km-row-index { color: #9a91a6; }
+body.km-user-theme .km-row-index.top { color: var(--km-brand-violet); }
+body.km-user-theme .km-row-play { border-color: var(--km-border-strong); color: var(--km-brand-violet); }
+body.km-user-theme .km-row-play:hover { background: var(--km-brand-violet); border-color: var(--km-brand-violet); color: #fff; }
+
+body.km-user-theme .km-tag-vip { background: #fff3d6; color: #9a6700; }
+
+body.km-user-theme .km-btn-quiet {
+  background: #fff;
+  border-color: var(--km-border);
+  color: var(--km-text);
+}
+body.km-user-theme .km-btn-quiet:hover { background: #faf7fd; border-color: var(--km-border-strong); }
+body.km-user-theme .km-btn-ghost { color: var(--km-text-dim); }
+body.km-user-theme .km-btn-ghost:hover { background: #f7f2fb; color: var(--km-text); }
+
+/* Element Plus · 浅色用户端校准 */
+body.km-user-theme .el-input__wrapper,
+body.km-user-theme .el-textarea__inner,
+body.km-user-theme .el-select__wrapper {
+  background-color: #fff !important;
+  box-shadow: 0 0 0 1px #e8e2ef inset !important;
+  color: var(--km-text);
+}
+body.km-user-theme .el-input__wrapper:hover,
+body.km-user-theme .el-textarea__inner:hover,
+body.km-user-theme .el-select__wrapper:hover { box-shadow: 0 0 0 1px #d9cde7 inset !important; }
+body.km-user-theme .el-input__wrapper.is-focus,
+body.km-user-theme .el-select__wrapper.is-focused {
+  background-color: #fff !important;
+  box-shadow: 0 0 0 1px #b766e8 inset !important;
+}
+body.km-user-theme .el-input__inner,
+body.km-user-theme .el-textarea__inner,
+body.km-user-theme .el-select__placeholder { color: var(--km-text); }
+body.km-user-theme .el-input__inner::placeholder,
+body.km-user-theme .el-textarea__inner::placeholder { color: #8d8499; }
+
+body.km-user-theme .el-popper.is-light,
+body.km-user-theme .el-dropdown__popper,
+body.km-user-theme .el-select__popper {
+  background: #fff !important;
+  border: 1px solid #ece5f3 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 18px 42px rgba(55, 36, 76, .14) !important;
+}
+body.km-user-theme .el-dropdown-menu { background: transparent; }
+body.km-user-theme .el-dropdown-menu__item { color: #4e4659; }
+body.km-user-theme .el-dropdown-menu__item:hover { background: #f7f1fc !important; color: #1d1726 !important; }
+body.km-user-theme .el-dropdown-menu__item.is-active { color: var(--km-brand-violet) !important; }
+
+body.km-user-theme .el-dialog,
+body.km-user-theme .el-drawer {
+  background: #fff !important;
+  border: 1px solid #ece5f3;
+  box-shadow: 0 28px 72px rgba(44, 27, 61, .22);
+}
+body.km-user-theme .el-dialog__title { color: var(--km-text) !important; }
+
+body.km-user-theme .el-button--primary {
+  background: var(--km-grad) !important;
+  color: #fff;
+}
+body.km-user-theme .el-button--primary.is-plain {
+  background: var(--km-brand-violet-soft) !important;
+  border-color: #dfc8f4 !important;
+  color: var(--km-brand-violet-dark);
+}
+
+body.km-user-theme .el-tabs__item { color: var(--km-text-dim); }
+body.km-user-theme .el-tabs__item.is-active { color: var(--km-text); }
+body.km-user-theme .el-tabs__active-bar { background: var(--km-brand-violet); }
+body.km-user-theme .el-tabs__nav-wrap::after { background: #eee8f4; }
+
+body.km-user-theme .el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: #fbf9fd;
+  --el-table-row-hover-bg-color: #faf6fe;
+  --el-table-border-color: #f0ebf4;
+  color: var(--km-text);
+}
+body.km-user-theme .el-table th.el-table__cell {
+  background: #fbf9fd !important;
+  color: #6f667d !important;
+}
+body.km-user-theme .el-table td.el-table__cell { border-bottom-color: #f1ecf5 !important; }
+body.km-user-theme .el-table .el-table__row:hover > td.el-table__cell { background: #faf6fe !important; }
+
+body.km-user-theme .el-pagination.is-background .el-pager li {
+  background: #f7f3fb;
+  color: var(--km-text-dim);
+}
+body.km-user-theme .el-pagination.is-background .el-pager li.is-active {
+  background: var(--km-brand-violet-soft);
+  border-color: #ddc6f4;
+  color: var(--km-brand-violet-dark);
+}
+
+body.km-user-theme .el-message {
+  background: #fff;
+  border-color: #ece5f3;
+  box-shadow: 0 14px 38px rgba(44, 27, 61, .14);
+}
+body.km-user-theme .el-message__content { color: var(--km-text) !important; }
+
+body.km-user-theme .el-empty__description p { color: var(--km-text-faint); }
+
+body.km-user-theme .el-slider__runway { background: #eee9f3; }
+body.km-user-theme .el-slider__bar { background: var(--km-brand-violet); }
+body.km-user-theme .el-slider__button { background: #fff; border: 2px solid var(--km-brand-violet); box-shadow: none; }
+
+body.km-user-theme .el-radio-button__inner {
+  background: #fff;
+  border-color: #e8e2ef !important;
+  color: var(--km-text-dim);
+}
+body.km-user-theme .el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background: var(--km-brand-violet-soft);
+  border-color: #ddc6f4 !important;
+  color: var(--km-brand-violet-dark);
+}
+
+body.km-user-theme .el-card { background: #fff; border-color: var(--km-border); }
+body.km-user-theme .el-form-item__label { color: var(--km-text-dim) !important; }
+
+/* ============================================================
+   旧页面 · 浅色视觉归一
+   让早期深色业务页沿用同一套画布、表面与强调色
+   ============================================================ */
+
+/* 用户端 · 详情页大图区 */
+body.km-user-theme .pl-hero,
+body.km-user-theme .singer-hero,
+body.km-user-theme .m-hero,
+body.km-user-theme .apply-hero {
+  background:
+    radial-gradient(620px 340px at 10% 0%, rgba(192, 132, 252, .13), transparent 62%),
+    linear-gradient(132deg, #fdf9ff 0%, #f5eaff 56%, #fff3fb 100%);
+  border-color: #ece2f4;
+  box-shadow: 0 12px 32px rgba(61, 36, 92, .045);
+}
+body.km-user-theme .hero-bg,
+body.km-user-theme .hero-cover {
+  opacity: .16;
+  filter: blur(60px) saturate(140%) brightness(1.35);
+}
+body.km-user-theme .hero-mask {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(250, 246, 255, .72)),
+    radial-gradient(620px 300px at 12% 18%, rgba(192, 132, 252, .12), transparent 60%);
+}
+body.km-user-theme .hero-grain { opacity: 0; background: none; }
+body.km-user-theme .pl-name,
+body.km-user-theme .singer-name,
+body.km-user-theme .stage-name,
+body.km-user-theme .apply-hero .hero-title,
+body.km-user-theme .song-title { color: var(--km-text); }
+body.km-user-theme .cover-box img {
+  border-color: rgba(255, 255, 255, .9);
+  box-shadow: 0 18px 44px rgba(61, 36, 92, .14);
+}
+body.km-user-theme .cover-badge,
+body.km-user-theme .verified {
+  background: var(--km-grad);
+  border-color: #fff;
+  color: #fff;
+}
+body.km-user-theme .badge-musician {
+  background: #fff;
+  border-color: #e1cdf4;
+  color: var(--km-brand-violet);
+}
+body.km-user-theme .stat-divider,
+body.km-user-theme .s-line { background: #e6dcef; }
+body.km-user-theme .hero-badge,
+body.km-user-theme .role-badge {
+  background: #f1e4ff;
+  border-color: #e2cdf6;
+  color: var(--km-brand-violet-dark);
+}
+body.km-user-theme .s-num {
+  background: #f1e4ff;
+  border-color: #e2cdf6;
+  color: var(--km-brand-violet-dark);
+}
+body.km-user-theme .hero-emoji {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: #f2e4ff;
+  color: var(--km-brand-violet);
+  font-size: 42px;
+  filter: none;
+  animation: none;
+}
+body.km-user-theme .apply-page .dropzone {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+body.km-user-theme .apply-page .dropzone .drop-copy { flex: 1 1 120px; }
+body.km-user-theme .apply-page .dropzone .pick-label { margin-left: 58px; }
+body.km-user-theme .btn-primary,
+body.km-user-theme .btn-accent,
+body.km-user-theme .button-primary {
+  background: var(--km-grad);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(153, 45, 190, .16);
+}
+body.km-user-theme .btn-primary:hover:not(:disabled),
+body.km-user-theme .btn-accent:hover:not(:disabled),
+body.km-user-theme .button-primary:hover:not(:disabled) { filter: brightness(1.05); }
+body.km-user-theme .submit-btn,
+body.km-user-theme .style-chip.active,
+body.km-user-theme .mini-primary,
+body.km-user-theme .send-btn,
+body.km-user-theme .ctrl-btn.play,
+body.km-user-theme .status-badge.living {
+  background: var(--km-grad) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+body.km-user-theme .mini-console:hover { color: #fff; }
+body.km-user-theme .btn-ghost,
+body.km-user-theme .btn-icon {
+  background: #fff;
+  border-color: #e4d9ee;
+  color: var(--km-text-dim);
+}
+body.km-user-theme .btn-ghost:hover,
+body.km-user-theme .btn-icon:hover {
+  background: #faf6fe;
+  border-color: #d6c3e5;
+  color: var(--km-text);
+}
+body.km-user-theme .btn-ghost.active {
+  background: #f5ecff;
+  border-color: #e1cdf4;
+  color: var(--km-brand-violet-dark);
+}
+
+/* 用户端 · 列表与行反馈 */
+body.km-user-theme .track-row:hover,
+body.km-user-theme .result-item:hover,
+body.km-user-theme .rank-row:hover,
+body.km-user-theme .hot-list button:hover { background: #faf7fd; }
+body.km-user-theme .search-field { background: #fff; }
+body.km-user-theme .search-field:focus-within { background: #fff; border-color: #ddc6f4; }
+body.km-user-theme .result-type { background: #f5f0f9; color: var(--km-text-faint); }
+body.km-user-theme .r-cover-wrap,
+body.km-user-theme .sk-cover { background: #f4eef8; }
+body.km-user-theme .suggest-list button,
+body.km-user-theme .hot-list button { border-color: #eee8f4; color: var(--km-text-dim); }
+body.km-user-theme .mini-btn {
+  background: #fff;
+  border-color: #e8e1ef;
+  color: var(--km-text-dim);
+}
+body.km-user-theme .mini-btn:hover {
+  background: #faf6fe;
+  border-color: #d7c6e7;
+  color: var(--km-text);
+}
+body.km-user-theme .row-play {
+  background: #fff;
+  border-color: #e7deef;
+  color: var(--km-brand-violet);
+}
+body.km-user-theme .row-play:hover {
+  background: var(--km-brand-violet);
+  border-color: var(--km-brand-violet);
+  color: #fff;
+}
+
+/* 直播间 · 礼物与弹幕输入 */
+body.km-user-theme .wallet-card { background: #fff; }
+body.km-user-theme .wallet-mark { background: #f4eaff; color: var(--km-brand-violet); }
+body.km-user-theme .balance-value { color: var(--km-text); }
+body.km-user-theme .gift-item { background: #fbf9fd; border-color: #eee8f4; }
+body.km-user-theme .gift-item:hover { background: #f7f0ff; border-color: #ddc6f4; }
+body.km-user-theme .gift-icon { background: #f4eaff; color: var(--km-brand-violet); }
+body.km-user-theme .chat-count { background: #f1ebf6; color: var(--km-text-faint); }
+body.km-user-theme .conn-state.connected { color: #0d8a61; }
+body.km-user-theme .chat-composer { background: #faf8fc; }
+body.km-user-theme .composer-field { background: #fff; }
+
+/* 歌曲详情 */
+body.km-user-theme .song-page { background: transparent; }
+body.km-user-theme .song-page .bg {
+  opacity: .13;
+  filter: blur(76px) saturate(140%) brightness(1.55);
+}
+body.km-user-theme .song-page .bg-mask {
+  background:
+    linear-gradient(180deg, rgba(247, 245, 251, .78), rgba(247, 245, 251, .95) 58%, var(--km-bg)),
+    radial-gradient(700px 380px at 12% 15%, rgba(192, 132, 252, .12), transparent 62%);
+}
+body.km-user-theme .song-page .artist { color: var(--km-text-dim); }
+body.km-user-theme .song-page .artist:hover { color: var(--km-brand-violet); }
+body.km-user-theme .song-page .follow-btn {
+  background: #fff;
+  border-color: #e4d9ee;
+  color: var(--km-text-dim);
+}
+body.km-user-theme .song-page .cover-shell {
+  border-color: #fff;
+  box-shadow: 0 26px 58px rgba(61, 36, 92, .16);
+}
+body.km-user-theme .song-page .cover-play { background: var(--km-grad); color: #fff; }
+body.km-user-theme .song-page .right-stage {
+  background: rgba(255, 255, 255, .92);
+  border-color: #ece5f3;
+  box-shadow: 0 12px 34px rgba(61, 36, 92, .06);
+  backdrop-filter: none;
+}
+body.km-user-theme .song-page .stage-tabs,
+body.km-user-theme .song-page .credits,
+body.km-user-theme .song-page .comment-input,
+body.km-user-theme .song-page .comment-item { border-color: #f0eaf5; }
+body.km-user-theme .song-page .tab-btn.active::after { background: var(--km-brand-violet); }
+body.km-user-theme .song-page .lyric-line { color: #8b8197; }
+body.km-user-theme .song-page .lyric-line.active { color: var(--km-brand-violet); text-shadow: none; }
+body.km-user-theme .song-page .c-content { color: var(--km-text-dim); }
+
+/* 音乐人卡片 */
+body.km-user-theme .m-card {
+  background: #fff;
+  border: 1px solid #eee9f3;
+  box-shadow: 0 8px 24px rgba(61, 36, 92, .04);
+}
+body.km-user-theme .m-card::before { display: none; }
+body.km-user-theme .m-card:hover {
+  transform: translateY(-3px);
+  border-color: #e1d5ef;
+  box-shadow: 0 14px 34px rgba(61, 36, 92, .065);
+}
+body.km-user-theme .m-intro { color: var(--km-text-faint); }
+
+/* 会员页 · 品牌紫替换荧光绿 */
+body.km-user-theme .vip-page {
+  --vip-lime: #8b3fce;
+  --vip-ink: #fff;
+  --vip-ground: #f7f5fb;
+  --vip-surface: #fff;
+  --vip-raised: #faf8fc;
+  --vip-border: #ece7f2;
+  --vip-text: #1d1726;
+  --vip-muted: #756b81;
+}
+body.km-user-theme .account-state { background: #fff; border-color: #ece7f2; }
+body.km-user-theme .account-state.active { border-color: #ddc6f4; }
+body.km-user-theme .account-state.active .state-led { background: var(--km-brand-violet); }
+body.km-user-theme .ad-pass {
+  background:
+    radial-gradient(820px 420px at 88% 35%, rgba(244, 114, 182, .38), transparent 50%),
+    linear-gradient(105deg, #35116e 0%, #651b92 54%, #a3268b 100%);
+  color: #fff;
+}
+body.km-user-theme .ad-pass h2 { color: #fff; }
+body.km-user-theme .ad-pass-copy { color: rgba(255, 255, 255, .8); }
+body.km-user-theme .ad-badge { border-color: rgba(255, 255, 255, .32); color: #fff; }
+body.km-user-theme .ad-cta { background: #fff; color: var(--km-brand-violet-dark); }
+body.km-user-theme .ad-cta:hover:not(:disabled) { background: #f7efff; }
+body.km-user-theme .ad-cta:disabled { background: rgba(255, 255, 255, .7); color: #8a7c98; }
+body.km-user-theme .ad-limit,
+body.km-user-theme .ad-facts { color: rgba(255, 255, 255, .72); }
+body.km-user-theme .ad-facts span + span::before { background: rgba(255, 255, 255, .4); }
+body.km-user-theme .ad-ticket {
+  background: rgba(255, 255, 255, .97);
+  color: var(--km-text);
+  border: 1px solid rgba(255, 255, 255, .65);
+}
+body.km-user-theme .ticket-head,
+body.km-user-theme .ticket-caption { color: var(--km-text-faint); }
+body.km-user-theme .ticket-number strong,
+body.km-user-theme .ticket-number span { color: var(--km-brand-violet); }
+body.km-user-theme .ticket-name { color: var(--km-text); }
+body.km-user-theme .week-day { background: #faf7fd; border-color: #eee8f4; color: var(--km-text-dim); }
+body.km-user-theme .plan-card { background: #fff; border-color: #ece7f2; }
+body.km-user-theme .plan-card:hover { border-color: #ddc6f4; }
+body.km-user-theme .plan-card.recommended { background: #fbf6ff; border-color: #ddc6f4; }
+body.km-user-theme .plan-badge { background: #eee0ff; color: var(--km-brand-violet-dark); }
+body.km-user-theme .plan-button { background: #fff; border-color: #e1d5ee; color: var(--km-text); }
+body.km-user-theme .plan-button:hover { background: #f7f0ff; border-color: #d6b9ef; }
+body.km-user-theme .benefit-strip { background: #fff; border-color: #ece7f2; }
+body.km-user-theme .benefit-item { border-left-color: #f0ebf5; }
+body.km-user-theme .benefit-icon { color: var(--km-brand-violet); }
+body.km-user-theme .order-panel { background: #fff; border-color: #ece7f2; }
+body.km-user-theme .order-row { border-top-color: #f2edf6; }
+body.km-user-theme .text-link { color: var(--km-brand-violet); }
+body.km-user-theme .page-alert { background: #fff6f8; border-color: #f3cdd8; color: #9f213c; }
+body.km-user-theme .skeleton { background: #f1ebf6; }
+body.km-user-theme .pay-amount { color: var(--km-text); }
+body.km-user-theme .pay-note { color: var(--km-text-faint); }
+body.km-user-theme .pay-method { background: #fbf9fd; border-color: #ece7f2; color: var(--km-text); }
+body.km-user-theme .pay-method.active { background: #f7f0ff; border-color: #d6b9ef; }
+body.km-user-theme .pay-submit { background: var(--km-grad); color: #fff; }
+body.km-user-theme .pay-submit:hover:not(:disabled) { filter: brightness(1.05); }
+
+/* 管理后台 · 指标面板与 AI 工具 */
+body.km-user-theme .stat-cell { background: #fbf9fd; }
+body.km-user-theme .stat-cell strong,
+body.km-user-theme .stat-cell b { color: var(--km-text); }
+body.km-user-theme .ai-review .hero,
+body.km-user-theme .model-settings .hero {
+  background:
+    radial-gradient(700px 360px at 88% 18%, rgba(236, 160, 255, .22), transparent 56%),
+    linear-gradient(120deg, #fcf8ff 0%, #f4e9ff 56%, #fff4fb 100%);
+  border-color: #ece2f4;
+}
+body.km-user-theme .ai-review .hero p,
+body.km-user-theme .model-settings .hero p { color: var(--km-text-dim); }
+body.km-user-theme .model-card { background: #fff; border-color: #ece7f2; }
+body.km-user-theme .model-card.active { border-color: #ddc6f4; }
+body.km-user-theme .policy-alert,
+body.km-user-theme .security-alert { background: #faf6ff; border-color: #e7d5f8; }
+body.km-user-theme .decision-dialog { background: #fff !important; border-color: #ece5f3 !important; }
+body.km-user-theme .decision-dialog .el-dialog__header,
+body.km-user-theme .decision-dialog .el-dialog__title,
+body.km-user-theme .decision-dialog .el-dialog__body { color: var(--km-text); border-color: #f0eaf5; }
+body.km-user-theme .decision-object { background: #fbf9fd; }
+
+/* 管理后台 · 检索监控 */
+body.km-user-theme .mon-grid .stat-card {
+  background: #fff;
+  border-color: #ece7f2;
+  box-shadow: 0 8px 24px rgba(61, 36, 92, .04);
+}
+body.km-user-theme .stat-ico {
+  background: #f5ecff;
+  border-color: #e6d4f7;
+  color: var(--km-brand-violet);
+}
+body.km-user-theme .sync-note {
+  background: #f5f8ff;
+  border-color: #dce8ff;
+  color: #45546b;
+}
+
+/* 创作者工作台 · 主播/广告 Hero 与收益概览 */
+body.km-user-theme .workbench .wb-hero {
+  background:
+    radial-gradient(620px 320px at 8% 0%, rgba(192, 132, 252, .15), transparent 62%),
+    linear-gradient(132deg, #fcf8ff 0%, #f4e9ff 56%, #fff3fb 100%);
+  border-color: #ece2f4;
+  box-shadow: 0 12px 30px rgba(61, 36, 92, .045);
+}
+body.km-user-theme .wb-eyebrow { color: var(--km-brand-violet); }
+body.km-user-theme .wb-title { color: var(--km-text); }
+body.km-user-theme .wb-tags { color: var(--km-text-dim); }
+body.km-user-theme .wb-emoji {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: #f1e4ff;
+  color: var(--km-brand-violet);
+  font-size: 26px;
+  filter: none;
+}
+body.km-user-theme .status-pill.ok { background: #f0e3ff; color: var(--km-brand-violet-dark); }
+body.km-user-theme .status-pill.warn { background: #fff5dc; color: #986400; }
+body.km-user-theme .style-pill { background: #f6f1fa; color: var(--km-text-dim); }
+body.km-user-theme .summary-card {
+  background: #fff;
+  border-color: #ece7f2;
+  box-shadow: 0 8px 24px rgba(61, 36, 92, .035);
+}
+body.km-user-theme .summary-card.wallet-card { background: #fbf6ff; }
+body.km-user-theme .console-page .metric-card {
+  background: #fff;
+  border-color: #ece7f2;
+  box-shadow: 0 8px 22px rgba(61, 36, 92, .035);
+}
+body.km-user-theme .console-page .interaction-panel {
+  background: #fff;
+  border-color: #ece7f2;
+  box-shadow: 0 8px 22px rgba(61, 36, 92, .035);
+}
+body.km-user-theme .console-page .eyebrow { color: var(--km-brand-violet); }
+body.km-user-theme .console-page .danmaku-item:hover { background: #faf7fd; }
+body.km-user-theme .console-page .danmaku-copy p { color: var(--km-text-dim); }
+body.km-user-theme .console-page .danmaku-actions button { background: #fff; color: var(--km-text-faint); }
+body.km-user-theme .console-page .danmaku-compose { background: #faf8fc; }
+body.km-user-theme .console-page .danmaku-compose .el-input {
+  --el-input-bg-color: #fff;
+  --el-input-border-color: #e8e2ef;
+  --el-input-text-color: var(--km-text);
+}
+body.km-user-theme .kpi-card {
+  background: #fff;
+  border-color: #ece7f2;
+  box-shadow: 0 8px 22px rgba(61, 36, 92, .035);
+}
+body.km-user-theme .kpi-card::after { background: radial-gradient(circle, rgba(174, 83, 217, .08), transparent 68%); }
+body.km-user-theme .kpi-trend.up { color: #0d8a61; }
+body.km-user-theme .kpi-trend.down { color: #c4242a; }
+body.km-user-theme .primary-action { background: var(--km-grad); color: #fff; }
+body.km-user-theme .primary-action:hover { filter: brightness(1.05); }
+body.km-user-theme .ghost-action { background: #fff; border-color: #e4d9ee; color: var(--km-text-dim); }
+body.km-user-theme .chart-grid line { stroke: #eee8f4; }
+body.km-user-theme .chart-tooltip { background: #fff; border-color: #e6d5f8; box-shadow: 0 10px 26px rgba(61, 36, 92, .12); }
+body.km-user-theme .gift-bars { border-bottom-color: #f0eaf5; }
+body.km-user-theme .gift-bar { background: linear-gradient(180deg, #c76be8, #7d2cd0); box-shadow: none; }
+body.km-user-theme .audience-track { background: #f0eaf5; }
+body.km-user-theme .settlement-card { background: #fbf6ff; }
+body.km-user-theme .settlement-badge.pending { background: #fff4d6; color: #8a5c00; }
+body.km-user-theme .settlement-badge.settled { background: #eaf9f1; color: #0b7d57; }
+body.km-user-theme .summary-card::after {
+  background: radial-gradient(circle, rgba(174, 83, 217, .09), transparent 70%);
+}
+body.km-user-theme .withdraw-btn {
+  background: #f5ecff;
+  border-color: #e1cdf4;
+  color: var(--km-brand-violet-dark);
+}
+body.km-user-theme .withdraw-btn:hover { background: #f0e1ff; }
+body.km-user-theme .head-note b { color: var(--km-brand-violet-dark); }
+body.km-user-theme .status-select .el-select__wrapper { background: #fff !important; box-shadow: 0 0 0 1px #e8e2ef inset !important; }
+
+/* 创作者工作台 · 业务面板 */
+body.km-user-theme .musician-console {
+  --mc-ground: #f7f5fb;
+  --mc-surface: #fff;
+  --mc-raised: #faf8fc;
+  --mc-border: #ece7f2;
+  --mc-border-strong: #dcd0e9;
+  --mc-text: #1d1726;
+  --mc-muted: #5f5769;
+  --mc-faint: #776d83;
+  --mc-accent: #8b3fce;
+  --mc-accent-data: #b430d0;
+  --mc-positive: #0d8a61;
+  --mc-warning: #b45309;
+  --mc-negative: #c4242a;
+}
+body.km-user-theme .table-panel,
+body.km-user-theme .release-checks,
+body.km-user-theme .artist-band,
+body.km-user-theme .detail-card,
+body.km-user-theme .settlement-card,
+body.km-user-theme .report-card { background: #fff; border-color: #ece7f2; }
+body.km-user-theme .filter-group,
+body.km-user-theme .search-box,
+body.km-user-theme .period-switch { background: #faf7fd; border-color: #eee8f4; }
+body.km-user-theme .musician-console .field > span { color: #5f5769; }
+body.km-user-theme .musician-console .field input,
+body.km-user-theme .musician-console .field select,
+body.km-user-theme .musician-console .field textarea {
+  border-color: #e1d9e9;
+  background: #fff;
+  color: #1d1726;
+}
+body.km-user-theme .musician-console .field input::placeholder,
+body.km-user-theme .musician-console .field textarea::placeholder { color: #9a90a6; }
+body.km-user-theme .musician-console .field input:focus,
+body.km-user-theme .musician-console .field select:focus,
+body.km-user-theme .musician-console .field textarea:focus {
+  border-color: var(--km-accent);
+  box-shadow: 0 0 0 3px rgba(139, 63, 206, .1);
+}
+body.km-user-theme .filter-chip.active,
+body.km-user-theme .period-switch button.active {
+  background: #f3eaff;
+  color: var(--km-brand-violet-dark);
+}
+body.km-user-theme .filter-chip:hover { background: #faf7fd; color: var(--km-text); }
+body.km-user-theme .works-table tbody tr:hover,
+body.km-user-theme .works-table tbody tr.selected { background: #faf6fe; }
+body.km-user-theme .button-quiet {
+  background: #fff;
+  border-color: #e4d9ee;
+  color: var(--km-text);
+}
+body.km-user-theme .button-quiet:hover:not(:disabled) { background: #faf6fe; border-color: #d6c3e5; }
+body.km-user-theme .artist-avatar { background: #f4eef8; }
+body.km-user-theme .skeleton { background: #f1ebf6; }
+body.km-user-theme .row-action:hover:not(:disabled) { background: #f7f1fb; }
+body.km-user-theme .withdraw-item p { background: #faf7fd; }
+body.km-user-theme .cover-wrap { background: #f4eef8; }
+body.km-user-theme .status-badge.ended { background: rgba(31, 20, 42, .72); color: #fff; }
+
+body.km-user-theme .admin-layout .user-chip .el-avatar,
+body.km-user-theme .studio-shell .account-button .el-avatar {
+  background: var(--km-grad);
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  body.km-user-theme .admin-layout .content,
+  body.km-user-theme .studio-shell .studio-content {
+    min-width: 0;
+    max-width: 100vw;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  body.km-user-theme .admin-layout .main,
+  body.km-user-theme .studio-shell .studio-main { min-width: 0; }
+  body.km-user-theme .el-table__body-wrapper { overflow-x: auto; }
+  body.km-user-theme .console-page { max-width: 100vw; overflow-x: clip; }
 }
 
 @media (prefers-reduced-motion: reduce) {

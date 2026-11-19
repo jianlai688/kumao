@@ -195,7 +195,7 @@ const searching = ref(false)
 const result = reactive({ total: 0, keyword: '', items: [] })
 
 const fallback = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#14111b"/><circle cx="60" cy="56" r="26" fill="none" stroke="#2c2538" stroke-width="2"/><circle cx="60" cy="56" r="5" fill="#3a3148"/><text x="60" y="104" font-size="11" text-anchor="middle" fill="#5b5266" letter-spacing="2">KUMAO</text></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#f4e9ff"/><circle cx="60" cy="56" r="26" fill="none" stroke="#d8b8ef" stroke-width="2"/><circle cx="60" cy="56" r="5" fill="#b56bdf"/><text x="60" y="104" font-size="11" text-anchor="middle" fill="#9469ae" letter-spacing="2">KUMAO</text></svg>'
 )
 
 const types = [
@@ -398,7 +398,7 @@ onMounted(async () => {
 }
 .result-item:hover { background: rgba(255, 255, 255, .04); }
 .result-item:focus-visible { outline-offset: 1px; }
-.r-cover-wrap { width: 54px; height: 54px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #1a1326; }
+.r-cover-wrap { width: 54px; height: 54px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #f4eef8; }
 .r-cover { width: 100%; height: 100%; object-fit: cover; display: block; }
 .r-body { flex: 1; min-width: 0; }
 .r-title { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--km-text); }

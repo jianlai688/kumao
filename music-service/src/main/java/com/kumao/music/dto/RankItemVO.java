@@ -1,5 +1,7 @@
 package com.kumao.music.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -11,6 +13,8 @@ import java.io.Serializable;
 public class RankItemVO implements Serializable {
 
     private Integer rank;
+    /** 雪花 songId 超出 JS 安全整数范围，必须序列化为字符串 */
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long songId;
     private String name;
     private String singerName;

@@ -32,6 +32,33 @@
         </view>
 
         <view class="field">
+          <text class="label">身份证号 <text class="req">*</text></text>
+          <input v-model="form.idCard" class="input" placeholder="请输入身份证号" placeholder-class="ph" maxlength="18" />
+        </view>
+
+        <view class="field">
+          <text class="label">身份证人像面 <text class="req">*</text></text>
+          <view class="id-upload" @click="chooseIdCard('front')">
+            <image v-if="form.idCardFrontUrl" :src="form.idCardFrontUrl" mode="aspectFill" class="id-image" />
+            <view v-else class="id-placeholder">
+              <text>{{ uploadingId === 'front' ? '上传中…' : '点击上传人像面' }}</text>
+              <text class="id-hint">请上传清晰完整的身份证正面</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="field">
+          <text class="label">身份证国徽面 <text class="req">*</text></text>
+          <view class="id-upload" @click="chooseIdCard('back')">
+            <image v-if="form.idCardBackUrl" :src="form.idCardBackUrl" mode="aspectFill" class="id-image" />
+            <view v-else class="id-placeholder">
+              <text>{{ uploadingId === 'back' ? '上传中…' : '点击上传国徽面' }}</text>
+              <text class="id-hint">请上传清晰完整的身份证反面</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="field">
           <text class="label">音乐风格 <text class="req">*</text></text>
           <view class="chips">
             <text
@@ -61,8 +88,16 @@
         </view>
 
         <view class="field">
-          <text class="label">头像链接</text>
-          <input v-model="form.avatar" class="input" placeholder="https://… （选填）" placeholder-class="ph" />
+          <text class="label">头像</text>
+          <view class="avatar-upload" @click="chooseAvatar">
+            <image v-if="form.avatar" :src="avatarOf(form.avatar)" mode="aspectFill" class="avatar-image" />
+            <view v-else class="avatar-placeholder">
+              <text class="avatar-plus">＋</text>
+              <text class="avatar-hint">{{ uploadingAvatar ? '上传中…' : '从相册选择' }}</text>
+            </view>
+            <view v-if="form.avatar" class="avatar-clear" @click.stop="form.avatar = ''">移除</view>
+          </view>
+          <text class="avatar-tip">选填，支持相册或拍照，建议正方形图片</text>
         </view>
 
         <view class="tips">
@@ -85,6 +120,8 @@ import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import KmNavBar from '@/components/km-nav-bar.vue'
 import { api } from '@/api'
+import { getApiBase } from '@/utils/server'
+import { avatarOf } from '@/utils/media'
 
 const styles = ['民谣', '流行', '摇滚', '电子', '说唱', '古风', '爵士', '纯音乐']
 
@@ -92,10 +129,15 @@ const checking = ref(true)
 const submitting = ref(false)
 const editing = ref(false)
 const existing = ref(null)
+const uploadingId = ref('')
+const uploadingAvatar = ref(false)
 
 const form = reactive({
   stageName: '',
   realName: '',
+  idCard: '',
+  idCardFrontUrl: '',
+  idCardBackUrl: '',
   style: '',
   representative: '',
   intro: '',
@@ -119,10 +161,102 @@ function fillForm(data) {
   if (!data) return
   form.stageName = data.stageName || ''
   form.realName = data.realName || ''
+  form.idCard = data.idCard || ''
+  form.idCardFrontUrl = data.idCardFrontUrl || ''
+  form.idCardBackUrl = data.idCardBackUrl || ''
   form.style = data.style || ''
   form.representative = data.representative || ''
   form.intro = data.intro || ''
   form.avatar = data.avatar || ''
+}
+
+function chooseIdCard(side) {
+  if (uploadingId.value) return
+  if (!uni.getStorageSync('km_token')) {
+    uni.navigateTo({ url: '/pages/login/login' })
+    return
+  }
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      const path = res.tempFilePaths && res.tempFilePaths[0]
+      if (path) uploadIdCard(side, path)
+    }
+  })
+}
+
+function uploadIdCard(side, filePath) {
+  uploadingId.value = side
+  const token = uni.getStorageSync('km_token')
+  uni.uploadFile({
+    url: `${getApiBase()}/file/files/upload?bizType=id-card`,
+    filePath,
+    name: 'file',
+    header: {
+      Authorization: `Bearer ${token}`,
+      'X-Device-Type': 'APP'
+    },
+    success: (res) => {
+      try {
+        const body = JSON.parse(res.data || '{}')
+        const url = body && body.data && body.data.url
+        if (body.code !== 200 || !url) throw new Error(body.message || '上传失败')
+        if (side === 'front') form.idCardFrontUrl = url
+        else form.idCardBackUrl = url
+        uni.showToast({ title: '证件照片已上传', icon: 'none' })
+      } catch (e) {
+        uni.showToast({ title: e.message || '上传失败，请重试', icon: 'none' })
+      }
+    },
+    fail: () => uni.showToast({ title: '上传失败，请检查网络', icon: 'none' }),
+    complete: () => { uploadingId.value = '' }
+  })
+}
+
+function chooseAvatar() {
+  if (uploadingAvatar.value) return
+  if (!uni.getStorageSync('km_token')) {
+    uni.navigateTo({ url: '/pages/login/login' })
+    return
+  }
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      const path = res.tempFilePaths && res.tempFilePaths[0]
+      if (path) uploadAvatar(path)
+    }
+  })
+}
+
+function uploadAvatar(filePath) {
+  uploadingAvatar.value = true
+  const token = uni.getStorageSync('km_token')
+  uni.uploadFile({
+    url: `${getApiBase()}/file/files/upload?bizType=avatar`,
+    filePath,
+    name: 'file',
+    header: {
+      Authorization: `Bearer ${token}`,
+      'X-Device-Type': 'APP'
+    },
+    success: (res) => {
+      try {
+        const body = JSON.parse(res.data || '{}')
+        const url = body && body.data && body.data.url
+        if (body.code !== 200 || !url) throw new Error(body.message || '上传失败')
+        form.avatar = url
+        uni.showToast({ title: '头像已上传', icon: 'none' })
+      } catch (e) {
+        uni.showToast({ title: e.message || '上传失败，请重试', icon: 'none' })
+      }
+    },
+    fail: () => uni.showToast({ title: '上传失败，请检查网络', icon: 'none' }),
+    complete: () => { uploadingAvatar.value = false }
+  })
 }
 
 function editAgain() {
@@ -150,6 +284,14 @@ async function submit() {
     uni.showToast({ title: '请填写真实姓名', icon: 'none' })
     return
   }
+  if (!form.idCard.trim()) {
+    uni.showToast({ title: '请填写身份证号', icon: 'none' })
+    return
+  }
+  if (!form.idCardFrontUrl || !form.idCardBackUrl) {
+    uni.showToast({ title: '请上传身份证正反面', icon: 'none' })
+    return
+  }
   if (!form.style) {
     uni.showToast({ title: '请选择音乐风格', icon: 'none' })
     return
@@ -159,6 +301,9 @@ async function submit() {
     const res = await api.musicianApply({
       stageName: form.stageName.trim(),
       realName: form.realName.trim(),
+      idCard: form.idCard.trim(),
+      idCardFrontUrl: form.idCardFrontUrl,
+      idCardBackUrl: form.idCardBackUrl,
       style: form.style,
       representative: form.representative.trim(),
       intro: form.intro.trim(),
@@ -207,7 +352,7 @@ onLoad(load)
 <style scoped>
 .page { min-height: 100vh; background: #08070a; padding-bottom: 70rpx; box-sizing: border-box; }
 .state { padding: 140rpx 0; display: flex; flex-direction: column; align-items: center; gap: 16rpx; color: rgba(247,241,232,.4); font-size: 23rpx; }
-.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: #f5b45b; animation: spin .8s linear infinite; }
+.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: var(--km-accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .status-card { margin: 16rpx 24rpx 0; padding: 26rpx; border-radius: 20rpx; background: rgba(245,180,91,.07); border: 1rpx solid rgba(245,180,91,.22); }
@@ -239,9 +384,20 @@ onLoad(load)
 .chips { display: flex; flex-wrap: wrap; gap: 10rpx; }
 .chip { padding: 12rpx 24rpx; border-radius: 999rpx; background: rgba(255,255,255,.05); color: rgba(247,241,232,.55); font-size: 22rpx; }
 .chip.on { background: rgba(245,180,91,.18); color: #f5cf9a; font-weight: 800; }
+.id-upload { width: 100%; height: 210rpx; overflow: hidden; border-radius: 16rpx; background: rgba(255,255,255,.04); border: 1rpx dashed rgba(245,180,91,.35); }
+.id-image { width: 100%; height: 100%; display: block; }
+.id-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10rpx; color: rgba(247,241,232,.55); font-size: 23rpx; }
+.id-hint { font-size: 19rpx; color: rgba(247,241,232,.3); }
+.avatar-upload { position: relative; width: 160rpx; height: 160rpx; border-radius: 24rpx; overflow: hidden; background: rgba(255,255,255,.04); border: 1rpx dashed rgba(245,180,91,.35); }
+.avatar-image { width: 100%; height: 100%; display: block; }
+.avatar-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6rpx; }
+.avatar-plus { font-size: 40rpx; line-height: 1; color: rgba(245,180,91,.75); }
+.avatar-hint { font-size: 18rpx; color: rgba(247,241,232,.45); }
+.avatar-clear { position: absolute; right: 8rpx; bottom: 8rpx; padding: 4rpx 12rpx; border-radius: 999rpx; background: rgba(0,0,0,.6); font-size: 16rpx; color: #fff; }
+.avatar-tip { display: block; margin-top: 10rpx; font-size: 18rpx; color: rgba(247,241,232,.3); }
 
 .tips { margin: 10rpx 0 26rpx; padding: 20rpx; border-radius: 16rpx; background: rgba(255,255,255,.03); }
-.tips-title { display: block; font-size: 20rpx; color: #f5b45b; font-weight: 800; letter-spacing: 1rpx; margin-bottom: 8rpx; }
+.tips-title { display: block; font-size: 20rpx; color: var(--km-accent); font-weight: 800; letter-spacing: 1rpx; margin-bottom: 8rpx; }
 .tips-line { display: block; font-size: 20rpx; color: rgba(247,241,232,.4); line-height: 1.8; }
 
 .submit {
@@ -250,4 +406,5 @@ onLoad(load)
 }
 .submit.disabled { opacity: .6; }
 </style>
+
 

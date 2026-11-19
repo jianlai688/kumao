@@ -22,10 +22,10 @@ public class AutoReviewProperties {
     private int pageSize = 30;
     /** 自动通过的最高风险分（AI 必须返回 PASS 且风险分低于该值） */
     private int passRiskThreshold = 35;
-    /** 允许 AI 自动通过并落业务状态的分类；默认覆盖除直播间外的全部待审分类 */
+    /** 允许 AI 自动通过并落业务状态的分类；评论/弹幕在发送时同步审核，不进入定时扫描 */
     private List<String> autoApproveCategories = new ArrayList<>(List.of(
             "ANCHOR_APPLY", "MUSICIAN", "ADVERTISER", "AD_MATERIAL", "AD_PLAN",
-            "SONG", "MV", "COMMENT", "DANMAKU", "SINGER"));
+            "SONG", "MV", "SINGER"));
     /** 单轮最多处理条数，避免一次性打满模型配额 */
     private int maxItemsPerRun = 60;
 }

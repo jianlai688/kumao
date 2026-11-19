@@ -2,7 +2,7 @@
  * 离线下载：把音频以 Blob 存进 IndexedDB，播放时用 object URL。
  * 纯前端实现，WebView 内也能真正落盘（受浏览器存储配额限制）。
  */
-import { API_BASE_URL } from '@/api'
+import { getApiBase } from '@/utils/server'
 import { fileUrl } from '@/utils/media'
 
 const DB_NAME = 'km_offline'
@@ -147,8 +147,9 @@ function resolveTarget(audioUrl) {
   } catch (e) {
     targetOrigin = ''
   }
+  const apiBase = getApiBase()
   try {
-    apiOrigin = new URL(API_BASE_URL, typeof location !== 'undefined' ? location.href : undefined).origin
+    apiOrigin = new URL(apiBase, typeof location !== 'undefined' ? location.href : undefined).origin
   } catch (e) {
     apiOrigin = ''
   }
@@ -156,7 +157,7 @@ function resolveTarget(audioUrl) {
   if (targetOrigin && apiOrigin && targetOrigin === apiOrigin) {
     return { url: absolute, headers }
   }
-  const base = String(API_BASE_URL || '').replace(/\/$/, '')
+  const base = String(apiBase || '').replace(/\/$/, '')
   return { url: `${base}/music/proxy/media?url=${encodeURIComponent(absolute)}`, headers }
 }
 

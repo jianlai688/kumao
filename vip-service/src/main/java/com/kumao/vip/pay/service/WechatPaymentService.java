@@ -64,7 +64,7 @@ public class WechatPaymentService {
         request.setNotifyUrl(properties.wechatNotifyUrl());
         if (order.getPayExpireTime() != null) {
             request.setTimeExpire(order.getPayExpireTime().atZone(CHINA_ZONE)
-                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX")));
         }
         Amount amount = new Amount();
         amount.setTotal(order.getAmount().movePointRight(2).intValueExact());

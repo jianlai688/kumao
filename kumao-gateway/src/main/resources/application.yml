@@ -146,6 +146,7 @@ kumao:
       - /api/music/rank/**
       - /api/music/mv/**
       - /api/music/banners
+      - /api/music/home/settings
       - /api/playlist/playlists/public/**
       - /api/comment/comments/song/**
       - /api/comment/comments/*/replies

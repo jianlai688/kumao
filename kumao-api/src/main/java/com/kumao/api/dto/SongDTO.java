@@ -23,6 +23,8 @@ public class SongDTO implements Serializable {
     private String style;
     private String region;
     private Boolean vipOnly;
+    /** 单曲价格（分），0 表示免费 */
+    private Integer price;
     private Integer status;
     private Long playCount;
     private String releaseDate;

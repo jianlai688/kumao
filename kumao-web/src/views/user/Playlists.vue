@@ -98,7 +98,7 @@ const form = reactive({
 })
 
 const fallback = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f2127"/><stop offset="1" stop-color="#121316"/></linearGradient></defs><rect width="300" height="300" fill="url(#g)"/><text x="150" y="172" font-size="58" text-anchor="middle" fill="#33363e">♫</text></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4e8ff"/><stop offset="1" stop-color="#fff2fb"/></linearGradient></defs><rect width="300" height="300" fill="url(#g)"/><circle cx="150" cy="150" r="60" fill="none" stroke="#d8b8ef" stroke-width="2"/><circle cx="150" cy="150" r="8" fill="#b56bdf"/><text x="150" y="252" font-size="16" text-anchor="middle" fill="#9469ae">KUMAO PLAYLIST</text></svg>'
 )
 
 function formatNum(n) {

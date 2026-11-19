@@ -150,7 +150,7 @@ onShow(() => {
   background: linear-gradient(135deg,#fbd08a,#de823c); color: #22150a; font-size: 22rpx; font-weight: 800;
 }
 .state { padding: 120rpx 0; display: flex; flex-direction: column; align-items: center; gap: 16rpx; color: rgba(247,241,232,.4); font-size: 23rpx; }
-.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: #f5b45b; animation: spin .8s linear infinite; }
+.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: var(--km-accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { padding: 110rpx 60rpx; display: flex; flex-direction: column; align-items: center; gap: 12rpx; }
 .empty-ico { width: 108rpx; height: 108rpx; border-radius: 50%; background: rgba(245,180,91,.08); display: flex; align-items: center; justify-content: center; }
@@ -180,4 +180,5 @@ onShow(() => {
 .cancel { background: rgba(255,255,255,.06); color: rgba(247,241,232,.6); }
 .confirm { background: linear-gradient(135deg,#fbd08a,#de823c); color: #22150a; }
 </style>
+
 

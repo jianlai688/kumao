@@ -36,26 +36,28 @@ kumao:
     cache-seconds: 300
   pay:
     # 渠道参数未配置时是否允许本地模拟支付（生产环境请设为 false）
-    mock-enabled: ${PAY_MOCK_ENABLED:true}
+    mock-enabled: ${PAY_MOCK_ENABLED:false}
     # 支付回调基础地址：必须是外网可访问的网关地址，本地联调可用内网穿透
     notify-base-url: ${PAY_NOTIFY_BASE_URL:http://127.0.0.1:8080}
     order-timeout-minutes: ${PAY_ORDER_TIMEOUT_MINUTES:30}
     alipay:
-      enabled: ${ALIPAY_ENABLED:false}
+      enabled: ${ALIPAY_ENABLED:true}
       # 沙箱网关；生产改为 https://openapi.alipay.com/gateway.do
       gateway-url: ${ALIPAY_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
-      app-id: ${ALIPAY_APP_ID:}
+      app-id: ${ALIPAY_APP_ID:9021000168626280}
       # 应用私钥（PKCS8，不带 BEGIN/END 头）
-      private-key: ${ALIPAY_PRIVATE_KEY:}
+      private-key: ${ALIPAY_PRIVATE_KEY:MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC8xvRxYTS9/iLRdSWB7i0URXCl/OIsKkFwFeQNlgJHZssZ97qjYqvXaQhUsLW294q/inWGglSlWm7E4U5WNvy9JgCKHL2haKFNetM3XVXMHsNBDkvTV3t70UiGfNvvudafQu9MvY1pIOetyCcBrQBIun2UBsQFrffXmgmKTAIw8YwtJpdsGTr6d2MPpRsKGp4ga8mdfMzDwCzX59v5Z9QIgK9OqWHu26TkQjEoSRojtEXLh/GTbR8qZdUrIWV66rui7LdlVQg6O9y3+j1w5nfPVHyZ4doV3Mx7zPeU7zvSBIzlxwuU+2yXcvJfBQ/3Ew1e3Gm6/xyrHjQCqUyenRFHAgMBAAECggEAcGeK/8PgssyTEONPLRmT8AEU/VEhnyieBE6Ul15eBwP3JYQztru3FLGuyzbZTJQDIuAf8LLEEh1R3ZtGmOFvBnWNVq+cXnK9sTPUdp/1yW/71U3c6n+pwGUyaRoJn6mpWPVzJd+sRw/Xw8ttJntLswKQacbJi5Q2AkPvMFDn8RmqshS80sjHHxu/TbI5T7LMjKBJ/KUg/fZ+fC0WbVMbnhM+sI0RkkbPZr+R0ZsHQ3CDUiiqVGJTPrzasgDclY3rDY3IE3Q/8zRX24NzKjF846mMRBWG8M2nPGUsiz6i3sP0jLrif/Ne0A8OMOr5ybeULxrUfF1Pwtx0vOsVaA8pGQKBgQD7eGMiPQ3NfI9HXQnwo98HTbG3c/Sf/099hEly78E3wTJeNO1BIsS0K2x4xPByPReYlkPq8r/zB36PZzIvxeNBeb7/IKVP4tbXp1RwoApx0swAbhHo3+I84C5XizTUudrooM5noK9cC6DZXzDjycS4T2HeCBaYA4XG31bQ2yp5hQKBgQDALXgOF8PWJDPxGWNuCS6DUsbwJ4fB5NuPrqbB7RjggqTmeneUVXOr3LTWLvoapI75TWhQW5fIK8xmIm5RKLPX5Z2nJq8voTOuC2Jjo1ITAe3pzTcOSkq6DWJvdpnAbdPMiBlp8yS0bK/K5LN9zSnRk2X5uc+br7+Ulrl1EjMTWwKBgQDH0sELmvJV3+3GqmLUqpL2LcHTYjv3y5vxxGXNBEFIOaf5fhstkCA4fu0CBpR+YpdWc8licCUhTEpAT6NsnNXZ2JFyEBHsqfdIhDmwCSxjiDr8+HoYz5bqAsYwYHjJtSoDgoyhgej2vnLBaEfkKhe80a+WDF1PzDTIc/57ljxpNQKBgQCrWt+lkUMpefZmkEC8KKu0pOaF1HmURcAQiaZfXE3GQjdO2vws41TUdWM5Z4HSp9BkMsVEgacA8Sy8FQ9Qhn51j2PXWwLx8UbndXcxaLsR/7JnunfQ4iVnZ+/Re2r0zfkAcopWklq0FgVZYDs7fOhA2rEezrNzGm40y4BqBuRL6QKBgQDVrAWRwnbqx509L/UeZL32ZI+qkX5/q1b54fct0p7AcRnLRvF+q2AHlqTa66GgCz/pFF7cex8REWblTjqdOXJrj1ZlGgaZM4hoC4mfJuvroAOnh3aQndxKN1D340u+7HZe2u5vn7TbDBU9DogENbSp8NRIDUswLs3thNJkwNn38g==}
+
       # 支付宝公钥，用于回调验签
-      public-key: ${ALIPAY_PUBLIC_KEY:}
+      public-key: ${ALIPAY_PUBLIC_KEY:MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsfn2HbngyaQYmndHkkQ0Vgeu5Zk8v53bR45kRf6azCoD1QKkGGfViTVHeJhBMwwWg+/3sd/jZshv0l6D62p2QKBGKO3H4V/i0i5LhO12sXnpyV7IVOgYZ1oQZoSfVyVZNfzvTZ7/fyxCiCf8fjwPlILFRWwXdv4sIF20dCd7J/YjPSq0NXbHI1VkMdIwGTRF6DIez0Lqf/wYAGqC6NRF6/qASS3mX/j9f9OzL/bUMdZwjHOt2A80puj1oYjywd6QMMafe3sOh77Ufc2wnjt9P5bbUZBiLEMBM7O6Ub9eGhlvtSm5GgPID/+jZwwSEL/jDiga82QebmFlFl/OmEEaeQIDAQAB}
+
       return-url: "${ALIPAY_RETURN_URL:http://127.0.0.1:5173/#/vip}"
     wechat:
       # 微信支付没有公开沙箱，需要真实商户号；false 时自动降级为模拟支付
       enabled: ${WECHAT_PAY_ENABLED:false}
-      app-id: ${WECHAT_APP_ID:}
-      mch-id: ${WECHAT_MCH_ID:}
-      merchant-serial-number: ${WECHAT_MERCHANT_SERIAL_NO:}
+      app-id: ${WECHAT_APP_ID:wx74862e0dfcf69954}
+      mch-id: ${WECHAT_MCH_ID:1558950191}
+      merchant-serial-number: ${WECHAT_MERCHANT_SERIAL_NO:34345964330B66427E0D3D28826C4993C77E631F}
       private-key: ${WECHAT_PRIVATE_KEY:}
       private-key-path: ${WECHAT_PRIVATE_KEY_PATH:}
       api-v3-key: ${WECHAT_API_V3_KEY:}
@@ -65,3 +67,4 @@ management:
     web:
       exposure:
         include: health,info
+

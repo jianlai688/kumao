@@ -180,7 +180,7 @@ onMounted(load)
   border-radius: 999rpx;
   background: rgba(245, 180, 91, .12);
   border: 1rpx solid rgba(245, 180, 91, .28);
-  color: #f5b45b;
+  color: var(--km-accent);
   font-size: 21rpx;
   font-weight: 700;
 }
@@ -287,6 +287,7 @@ onMounted(load)
 .af-ico { color: #86efac; font-size: 24rpx; font-weight: 900; }
 .af-text { font-size: 21rpx; color: rgba(134,239,172,.85); }
 </style>
+
 
 
 

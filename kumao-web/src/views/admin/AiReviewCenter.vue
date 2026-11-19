@@ -32,7 +32,7 @@
         AI 自动审核{{ auto.status.modelConfigured ? '运行中' : '等待模型配置' }}
         <span v-if="auto.status.running" class="auto-running">· 正在执行</span>
       </template>
-      每 {{ autoIntervalText }} 扫描一次；已自动通过 {{ auto.status.autoApproved || 0 }} 条，待人工复核 {{ auto.status.pendingAdmin || 0 }} 条。
+      每 {{ autoIntervalText }} 扫描一次；自动任务已通过 {{ auto.status.autoApproved || 0 }} 条，自动任务待人工复核 {{ auto.status.pendingAdmin || 0 }} 条。评论 / 弹幕待复核数量见下方队列。
       <span v-if="!auto.status.modelConfigured">请先在「模型配置」中启用审核模型。</span>
       <span v-else-if="auto.status.lastRunAt">最近执行：{{ formatTime(auto.status.lastRunAt) }}</span>
     </el-alert>
@@ -85,6 +85,14 @@
                 <div class="object-title">{{ row.title || '未命名内容' }}</div>
                 <div class="object-meta">{{ row.subtitle }}</div>
                 <div class="object-content">{{ row.content || '暂无补充内容' }}</div>
+                <IdCardPreview
+                  v-if="['ANCHOR_APPLY', 'MUSICIAN', 'ADVERTISER'].includes(row.category)"
+                  class="queue-id-card"
+                  :front="row.raw?.idCardFrontUrl"
+                  :back="row.raw?.idCardBackUrl"
+                  :number="row.raw?.idCard"
+                  compact
+                />
               </template>
             </el-table-column>
             <el-table-column label="AI 建议" width="142">
@@ -190,8 +198,15 @@
 
     <el-dialog v-model="decision.visible" :title="decision.approved ? '确认通过审核' : '确认驳回审核'" width="min(560px, calc(100vw - 24px))" class="decision-dialog">
       <div class="decision-object">
-        <div><span>{{ categoryLabel[decision.row?.category] }}</span><strong>{{ decision.row?.title }}</strong></div>
+        <div class="decision-object-head"><span>{{ categoryLabel[decision.row?.category] }}</span><strong>{{ decision.row?.title }}</strong></div>
         <small class="mono">#{{ decision.row?.id }} · {{ decision.row?.subtitle }}</small>
+        <IdCardPreview
+          v-if="['ANCHOR_APPLY', 'MUSICIAN', 'ADVERTISER'].includes(decision.row?.category)"
+          class="decision-id-card"
+          :front="decision.row?.raw?.idCardFrontUrl"
+          :back="decision.row?.raw?.idCardBackUrl"
+          :number="decision.row?.raw?.idCard"
+        />
       </div>
       <div v-if="decision.row?.ai" class="decision-ai">
         <div class="decision-ai-head">
@@ -224,6 +239,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { adApi, commentApi, liveApi, musicApi, musicianApi, reviewApi, userApi } from '@/api'
 import { reviewWithAi } from '@/utils/aiReviewHarness'
+import IdCardPreview from '@/components/IdCardPreview.vue'
+import { adSlotLabel } from '@/constants/adSlot'
 
 const activeTab = ref('queue')
 const loading = ref(false)
@@ -267,9 +284,9 @@ const categories = [
   { key: 'AD_PLAN', label: '广告投放', icon: '📅', load: () => adApi.adminPlans({ pageNum: 1, pageSize: 30, status: 'PENDING' }) },
   { key: 'SONG', label: '歌曲', icon: '🎧', load: () => musicApi.songs({ pageNum: 1, pageSize: 30, status: 0 }) },
   { key: 'MV', label: 'MV', icon: '🎬', load: () => musicApi.adminMvs({ pageNum: 1, pageSize: 30, auditStatus: 'PENDING' }) },
-  { key: 'COMMENT', label: '评论', icon: '💬', load: () => commentApi.adminPage({ pageNum: 1, pageSize: 30, status: 0 }) },
+  { key: 'COMMENT', label: '评论', icon: '💬', load: () => commentApi.adminPage({ pageNum: 1, pageSize: 30, status: 2 }) },
   { key: 'LIVE_ROOM', label: '直播间', icon: '📺', load: () => liveApi.adminPage({ pageNum: 1, pageSize: 30, status: 'LIVING', banned: 0 }) },
-  { key: 'DANMAKU', label: '直播弹幕', icon: '💭', load: () => liveApi.adminDanmaku({ pageNum: 1, pageSize: 30 }) },
+  { key: 'DANMAKU', label: '直播弹幕', icon: '💭', load: () => liveApi.adminDanmaku({ pageNum: 1, pageSize: 30, status: 2 }) },
   { key: 'SINGER', label: '歌手认证', icon: '⭐', load: () => musicApi.adminSingers({ pageNum: 1, pageSize: 30, status: 0 }) }
 ]
 
@@ -359,7 +376,7 @@ function text(value) {
 }
 
 function slotText(slot) {
-  return ({ SPLASH: '开屏广告', HOME_BANNER: '首页 Banner', LIVE: '直播页', PLAYER: '播放页' }[slot] || slot || '未知版位')
+  return adSlotLabel(slot)
 }
 
 function mapItem(category, raw) {
@@ -372,19 +389,40 @@ function mapItem(category, raw) {
       title = raw.realName || `主播申请 #${raw.userId}`
       subtitle = `直播分类：${raw.liveCategory || '未填写'} · 用户 #${raw.userId}`
       content = raw.intro || ''
-      metadata = { userId: raw.userId, liveCategory: raw.liveCategory, status: raw.status }
+      metadata = {
+        userId: raw.userId,
+        liveCategory: raw.liveCategory,
+        status: raw.status,
+        hasIdCardNo: Boolean(raw.idCard),
+        hasIdCardFront: Boolean(raw.idCardFrontUrl),
+        hasIdCardBack: Boolean(raw.idCardBackUrl)
+      }
       break
     case 'MUSICIAN':
       title = raw.stageName || raw.realName || `音乐人 #${raw.id}`
       subtitle = `${raw.style || '未填写风格'} · ${raw.realName || '未填写实名'}`
       content = raw.intro || raw.representative || ''
-      metadata = { stageName: raw.stageName, style: raw.style, status: raw.status }
+      metadata = {
+        stageName: raw.stageName,
+        style: raw.style,
+        status: raw.status,
+        hasIdCardNo: Boolean(raw.idCard),
+        hasIdCardFront: Boolean(raw.idCardFrontUrl),
+        hasIdCardBack: Boolean(raw.idCardBackUrl)
+      }
       break
     case 'ADVERTISER':
       title = raw.companyName || `广告制作人 #${raw.id}`
       subtitle = `${raw.adType || '未填写类型'} · ${raw.realName || '未填写实名'}`
       content = raw.intro || raw.representative || ''
-      metadata = { companyName: raw.companyName, adType: raw.adType, status: raw.status }
+      metadata = {
+        companyName: raw.companyName,
+        adType: raw.adType,
+        status: raw.status,
+        hasIdCardNo: Boolean(raw.idCard),
+        hasIdCardFront: Boolean(raw.idCardFrontUrl),
+        hasIdCardBack: Boolean(raw.idCardBackUrl)
+      }
       break
     case 'AD_MATERIAL':
       title = raw.name || `广告素材 #${raw.id}`
@@ -443,7 +481,14 @@ function mapItem(category, raw) {
     subtitle,
     content: text(content),
     metadata,
-    ai: null,
+    ai: raw.aiDecision ? {
+      decision: raw.aiDecision,
+      riskScore: raw.aiRiskScore,
+      reasons: raw.aiReasons || '',
+      signals: [],
+      source: raw.aiSource || 'LOCAL_RULE',
+      fallbackReason: raw.aiSource === 'UNAVAILABLE' ? 'AI 审核服务不可用，已转人工复核' : null
+    } : null,
     analyzing: false
   }
 }
@@ -594,8 +639,7 @@ async function executeAction(row, approved, reason) {
     case 'LIVE_ROOM':
       return liveApi.ban(row.id, !approved, reason)
     case 'DANMAKU':
-      if (!approved) return liveApi.deleteDanmaku(row.id)
-      return Promise.resolve()
+      return liveApi.adminDanmakuStatus(row.id, approved ? 0 : 1)
     case 'SINGER':
       return musicApi.auditSinger(row.id, approved, reason)
     default:
@@ -660,7 +704,8 @@ function riskClass(score) {
 }
 function sourceText(value) {
   if (value === 'LOCAL_RULE') return '本地规则'
-  if (value === 'AI_MODEL' || value === 'DEEPSEEK') return 'AI 模型'
+  if (value === 'AI_MODEL' || value === 'AI_MODEL_TEXT' || value === 'DEEPSEEK') return 'AI 模型'
+  if (value === 'UNAVAILABLE') return '审核不可用'
   return '未分析'
 }
 function formatTime(value) {
@@ -711,6 +756,8 @@ onMounted(refreshAll)
 .object-title { color: var(--km-text); font-size: 12.5px; font-weight: 600; }
 .object-meta { margin-top: 4px; color: var(--km-text-faint); font-size: 10.5px; }
 .object-content { display: -webkit-box; margin-top: 6px; overflow: hidden; color: var(--km-text-dim); font-size: 11px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.queue-id-card { margin-top: 7px; }
+.decision-id-card { margin-top: 10px; }
 .sub { color: var(--km-text-faint); font-size: 10.5px; }
 .mono { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .risk-line { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 10px; }
@@ -735,13 +782,14 @@ onMounted(refreshAll)
 .breakdown-item small { display: block; margin-top: 2px; color: var(--km-text-faint); font-size: 9.5px; }
 .log-toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
 .pager { display: flex; justify-content: flex-end; padding: 12px 15px; border-top: 1px solid var(--km-border); }
-.decision-dialog { background: #0d0b11 !important; border: 1px solid #2c2634 !important; border-radius: 10px !important; }
-.decision-dialog :deep(.el-dialog__header) { padding: 18px 20px 10px; margin: 0; border-bottom: 1px solid #25202d; }
-.decision-dialog :deep(.el-dialog__title) { color: #f7f4fc; font-size: 16px; font-weight: 600; }
-.decision-dialog :deep(.el-dialog__body) { padding: 16px 20px; color: #f7f4fc; }
-.decision-dialog :deep(.el-dialog__footer) { padding: 0 20px 18px; }
-.decision-object { padding: 12px 14px; border: 1px solid var(--km-border); border-radius: 9px; background: rgba(255, 255, 255, .025); }
-.decision-object > div { display: flex; align-items: center; gap: 8px; justify-content: space-between; color: var(--km-text-faint); font-size: 10.5px; }
+.decision-dialog { background: #fff !important; border: 1px solid #ece7f2 !important; border-radius: 14px !important; box-shadow: 0 24px 70px rgba(40, 22, 63, .16) !important; }
+.decision-dialog :deep(.el-dialog__header) { padding: 18px 22px 12px; margin: 0; border-bottom: 1px solid #f0ebf5; }
+.decision-dialog :deep(.el-dialog__title) { color: #1d1726; font-size: 17px; font-weight: 650; }
+.decision-dialog :deep(.el-dialog__body) { padding: 16px 22px 8px; color: #1d1726; }
+.decision-dialog :deep(.el-dialog__footer) { padding: 13px 22px 18px; border-top: 1px solid #f3eef8; }
+.decision-dialog :deep(.el-dialog__headerbtn .el-dialog__close) { color: #8b8195; }
+.decision-object { padding: 12px 14px; border: 1px solid #ece7f2; border-radius: 9px; background: #faf7fd; }
+.decision-object-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; color: var(--km-text-faint); font-size: 10.5px; }
 .decision-object strong { color: var(--km-text); font-size: 13px; font-weight: 600; text-align: right; }
 .decision-object small { display: block; margin-top: 6px; color: var(--km-text-faint); font-size: 10px; }
 .decision-ai { margin: 11px 0; padding: 11px 13px; border: 1px solid rgba(192, 132, 252, .18); border-radius: 9px; background: rgba(192, 132, 252, .06); }

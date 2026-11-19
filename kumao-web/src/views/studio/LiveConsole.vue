@@ -14,7 +14,7 @@
           <i aria-hidden="true"></i>{{ isLive ? 'LIVE' : 'OFFLINE' }}
         </span>
         <div class="top-title">
-          <strong>直播控制台</strong>
+          <h1>直播控制台</h1>
           <span>{{ room.title }}</span>
         </div>
       </div>
@@ -99,7 +99,7 @@
               <span class="eyebrow">NOW PLAYING</span>
               <h2 id="now-title">正在播放</h2>
             </div>
-            <span class="queue-position">{{ currentIndex + 1 }} / {{ queue.length }} · 待唱队列</span>
+            <span class="queue-position">{{ queue.length ? `${currentIndex + 1} / ${queue.length}` : '0 / 0' }} · 待唱队列</span>
           </div>
 
           <div v-if="currentTrack" class="now-body">
@@ -167,7 +167,12 @@
                   <el-icon><CopyDocument /></el-icon>复制
                 </button>
               </div>
-              <small>使用 OBS 或手机推流 App 推流到该地址</small>
+              <small>点击开始直播会自动生成演示画面；也可用 OBS 或手机推流 App 推流到该地址</small>
+              <div class="broadcast-hint">
+                <button type="button" class="copy-btn" @click="copyBroadcastUrl">复制 OBS 画面地址</button>
+                <button type="button" class="copy-btn" @click="openObsDialog">OBS 自动推流设置</button>
+                <a :href="`#/studio/live/${room.id}/broadcast`" target="_blank" rel="noopener">预览画面</a>
+              </div>
             </div>
           </div>
         </section>
@@ -259,8 +264,30 @@
           <div v-else class="empty-inline">还没有收到礼物</div>
         </div>
 
+        <div v-else-if="activeTab === 'audience'" class="tab-panel audience-panel">
+          <div class="panel-note">
+            <span>实时观众画像</span>
+            <small>{{ audience.sampleCount || 0 }} 位在线样本</small>
+          </div>
+          <div v-if="audience.sampleCount" class="audience-groups">
+            <div v-for="group in audienceGroups" :key="group.label" class="audience-group">
+              <h4>{{ group.label }}</h4>
+              <div v-for="item in group.items" :key="item.label" class="audience-row">
+                <span class="audience-name">{{ item.label }}</span>
+                <span class="audience-track"><i :style="{ width: `${Math.min(100, item.value)}%` }"></i></span>
+                <b>{{ item.value }}%</b>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-inline">暂无在线登录观众</div>
+        </div>
+
         <div v-else class="tab-panel queue-panel">
-          <div class="panel-note"><span>待唱队列</span><small>{{ queue.length }} 首</small></div>
+          <div class="panel-note">
+            <span>待唱队列</span>
+            <small>{{ queue.length }} 首</small>
+            <button class="setlist-edit" type="button" @click="openSetlist">设置歌单</button>
+          </div>
           <div class="setlist">
             <button
               v-for="(track, index) in queue"
@@ -276,10 +303,93 @@
               </span>
               <span class="setlist-status">{{ index === currentIndex ? '正在唱' : '切歌' }}</span>
             </button>
+            <p v-if="!queue.length" class="empty-inline">还没有设置歌单，点击右上角「设置歌单」添加歌曲</p>
           </div>
         </div>
       </aside>
     </div>
+
+    <!-- 设置直播歌单 -->
+    <el-dialog v-model="setlistOpen" title="设置直播歌单" width="780px">
+      <div class="setlist-dialog">
+        <div class="sd-col">
+          <el-radio-group v-model="setlistSource" size="small" @change="loadCandidates">
+            <el-radio-button value="hot">热歌榜</el-radio-button>
+            <el-radio-button value="mine">我的歌单</el-radio-button>
+          </el-radio-group>
+          <div v-if="setlistSource === 'mine' && myPlaylists.length" class="pl-list">
+            <button v-for="pl in myPlaylists" :key="pl.id" type="button" class="pl-item" @click="loadPlaylistSongs(pl)">
+              <span>{{ pl.name }}</span>
+              <small>{{ pl.songCount }} 首</small>
+            </button>
+          </div>
+          <div class="cand-list" v-loading="setlistLoading">
+            <button v-for="t in candidates" :key="t.id" type="button" class="cand-row" @click="addTrack(t)">
+              <span class="nm">{{ t.name }}</span>
+              <small>{{ t.singerName }}</small>
+              <b>＋</b>
+            </button>
+            <p v-if="!candidates.length" class="sd-empty">选择左侧歌单查看歌曲</p>
+          </div>
+        </div>
+        <div class="sd-col">
+          <div class="sd-head">已选 {{ picked.length }} 首</div>
+          <div class="cand-list">
+            <div v-for="(t, i) in picked" :key="t.id" class="pick-row">
+              <span class="idx">{{ i + 1 }}</span>
+              <span class="nm">{{ t.name }}</span>
+              <small>{{ t.singerName }}</small>
+              <button type="button" class="mini" :disabled="i === 0" @click="movePicked(i, -1)">↑</button>
+              <button type="button" class="mini" :disabled="i === picked.length - 1" @click="movePicked(i, 1)">↓</button>
+              <button type="button" class="mini danger" @click="removePicked(i)">×</button>
+            </div>
+            <p v-if="!picked.length" class="sd-empty">还没有选歌</p>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="setlistOpen = false">取消</el-button>
+        <el-button type="primary" @click="saveSetlist">保存歌单</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="obsDialog" title="OBS 自动推流设置" width="460px">
+      <el-form label-position="top">
+        <el-form-item label="OBS WebSocket 地址">
+          <el-input v-model="obsForm.url" placeholder="ws://127.0.0.1:4455" />
+        </el-form-item>
+        <el-form-item label="OBS WebSocket 密码">
+          <el-input v-model="obsForm.password" type="password" show-password placeholder="OBS → 工具 → WebSocket 服务器设置 中查看" />
+        </el-form-item>
+        <el-form-item label="直播画面来源">
+          <el-radio-group v-model="obsForm.source">
+            <el-radio value="screen">主播电脑屏幕</el-radio>
+            <el-radio value="page">直播画面页</el-radio>
+          </el-radio-group>
+          <p class="obs-tip">选择「主播电脑屏幕」时，OBS 会自动切换到「酷猫屏幕直播」场景并采集显示器；请把 OBS 最小化，避免把 OBS 窗口也拍进去。</p>
+        </el-form-item>
+        <el-form-item v-if="obsForm.source === 'page'" label="选择直播页面">
+          <el-select v-model="obsForm.page" style="width: 100%">
+            <el-option v-for="page in obsPages" :key="page.value" :label="page.label" :value="page.value" />
+          </el-select>
+          <el-input
+            v-if="obsForm.page === 'custom'"
+            v-model="obsForm.customPage"
+            style="margin-top: 8px"
+            placeholder="https://example.com/page"
+          />
+          <p class="obs-tip">OBS 会用浏览器源打开所选页面；需要登录的页面无法直接作为直播源，建议使用公开页面。</p>
+        </el-form-item>
+        <el-form-item label="开播时">
+          <el-switch v-model="obsForm.auto" active-text="自动写入推流地址并开始推流" />
+        </el-form-item>
+        <p class="obs-tip">开启后点击「开始直播」会把当前直播间推流地址写入 OBS，并自动开始 OBS 推流；OBS 推流成功后系统会跳过自动演示画面。</p>
+      </el-form>
+      <template #footer>
+        <el-button @click="obsDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveObsConfig">保存设置</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 结束直播确认层 -->
     <div v-if="showEndConfirm" class="end-backdrop" @click.self="showEndConfirm = false">
@@ -336,7 +446,9 @@ import {
   User,
   View
 } from '@element-plus/icons-vue'
-import { liveApi, musicApi } from '@/api'
+import { liveApi, musicApi, playlistApi } from '@/api'
+import { pushToObs, stopObsStream } from '@/utils/obs'
+import request from '@/api/request'
 import { useUserStore } from '@/stores/user'
 import AnimatedNumber from '@/components/studio/AnimatedNumber.vue'
 import LiveStreamPreview from '@/components/studio/LiveStreamPreview.vue'
@@ -416,11 +528,20 @@ const metricCards = computed(() => [
 
 const danmaku = ref([])
 const giftFeed = ref([])
+const audience = ref({ gender: [], age: [], region: [], sampleCount: 0, onlineCount: 0 })
+let audienceTimer = null
+
+const audienceGroups = computed(() => [
+  { label: '性别分布', items: audience.value.gender || [] },
+  { label: '年龄分布', items: audience.value.age || [] },
+  { label: '地区分布', items: audience.value.region || [] }
+])
 
 const interactionTabs = computed(() => [
   { value: 'chat', label: '弹幕', count: danmaku.value.length },
   { value: 'gifts', label: '礼物', count: giftFeed.value.length },
   { value: 'rank', label: '榜单', count: null },
+  { value: 'audience', label: '观众', count: audience.value.sampleCount || null },
   { value: 'queue', label: '歌单', count: queue.value.length }
 ])
 
@@ -491,26 +612,118 @@ async function loadRoom() {
 }
 
 async function loadQueue() {
+  const ids = (room.value?.playlistIds || '').split(',').filter(Boolean)
+  if (!ids.length) {
+    // 未设置直播歌单时不使用热歌榜兜底，避免“没选歌却有歌单”
+    queue.value = []
+    currentIndex.value = 0
+    return
+  }
   try {
-    const res = await musicApi.hot(8)
-    const tracks = (res.data || []).map((song) => ({
-      id: song.songId || song.id,
-      name: song.name,
-      singerName: song.singerName,
-      coverUrl: song.coverUrl,
-      duration: song.duration || 240
-    }))
+    const songs = await Promise.all(ids.map((id) => musicApi.song(id).then((r) => r.data).catch(() => null)))
+    const tracks = songs.filter(Boolean).map(toTrack)
     if (tracks.length) {
       queue.value = tracks
+      currentIndex.value = 0
       return
     }
-  } catch (e) { /* fallback */ }
-  queue.value = [
-    { id: 'fallback-1', name: '晴天', singerName: '周杰伦', duration: 269 },
-    { id: 'fallback-2', name: '光年之外', singerName: '邓紫棋', duration: 235 },
-    { id: 'fallback-3', name: '十年', singerName: '陈奕迅', duration: 205 },
-    { id: 'fallback-4', name: '稻香', singerName: '周杰伦', duration: 223 }
-  ]
+  } catch (e) { /* empty queue */ }
+  queue.value = []
+  currentIndex.value = 0
+}
+
+function toTrack(song) {
+  return {
+    id: song.songId || song.id,
+    name: song.songName || song.name,
+    singerName: song.singerName,
+    coverUrl: song.coverUrl,
+    duration: song.duration || 240
+  }
+}
+
+// ---------- 开播前设置直播歌单 ----------
+const setlistOpen = ref(false)
+const setlistSource = ref('hot')
+const myPlaylists = ref([])
+const candidates = ref([])
+const picked = ref([])
+const setlistLoading = ref(false)
+const obsDialog = ref(false)
+const obsForm = reactive({
+  url: localStorage.getItem('km_obs_ws_url') || 'ws://127.0.0.1:4455',
+  password: localStorage.getItem('km_obs_ws_password') || '',
+  auto: localStorage.getItem('km_obs_auto') !== '0',
+  source: localStorage.getItem('km_obs_source') || 'screen',
+  page: localStorage.getItem('km_obs_page') || 'broadcast',
+  customPage: localStorage.getItem('km_obs_custom_page') || ''
+})
+
+const obsPages = [
+  { value: 'broadcast', label: '直播画面页（推荐）', path: '/studio/live/{id}/broadcast' },
+  { value: 'home', label: '首页', path: '/' },
+  { value: 'rank', label: '排行榜', path: '/rank/hot' },
+  { value: 'playlists', label: '歌单广场', path: '/playlists' },
+  { value: 'mv', label: 'MV 专区', path: '/mv' },
+  { value: 'liveSquare', label: '直播广场', path: '/live' },
+  { value: 'liveRoom', label: '本直播间', path: '/live/{id}' },
+  { value: 'custom', label: '自定义页面', path: '' }
+]
+
+async function openSetlist() {
+  setlistOpen.value = true
+  const ids = (room.value?.playlistIds || '').split(',').filter(Boolean)
+  picked.value = ids.map((id) => queue.value.find((t) => String(t.id) === String(id)) || { id, name: `歌曲 ${id}`, singerName: '' })
+  await loadCandidates()
+}
+
+async function loadCandidates() {
+  setlistLoading.value = true
+  try {
+    if (setlistSource.value === 'mine') {
+      const res = await playlistApi.mine({ pageNum: 1, pageSize: 50 })
+      myPlaylists.value = res.data?.records || []
+      candidates.value = []
+    } else {
+      const res = await musicApi.hot(50)
+      candidates.value = (res.data || []).map(toTrack)
+    }
+  } finally {
+    setlistLoading.value = false
+  }
+}
+
+async function loadPlaylistSongs(pl) {
+  const res = await playlistApi.detail(pl.id)
+  candidates.value = (res.data?.songs || []).map(toTrack)
+}
+
+function addTrack(track) {
+  if (picked.value.length >= 50) {
+    ElMessage.warning('最多 50 首')
+    return
+  }
+  if (!picked.value.some((t) => String(t.id) === String(track.id))) picked.value.push({ ...track })
+}
+
+function removePicked(index) {
+  picked.value.splice(index, 1)
+}
+
+function movePicked(index, delta) {
+  const target = index + delta
+  if (target < 0 || target >= picked.value.length) return
+  const list = picked.value
+  ;[list[index], list[target]] = [list[target], list[index]]
+}
+
+async function saveSetlist() {
+  const songIds = picked.value.map((t) => t.id).join(',')
+  await request.put(`/live/live/rooms/${roomId}/playlist`, { songIds })
+  if (room.value) room.value.playlistIds = songIds
+  setlistOpen.value = false
+  await loadQueue()
+  ElMessage.success('直播歌单已保存，开播后按此顺序播放')
 }
 
 function formatMessageTime(value) {
@@ -568,6 +781,21 @@ async function loadGifts() {
   }
 }
 
+async function loadAudience() {
+  try {
+    const res = await liveApi.audience(roomId)
+    audience.value = {
+      gender: res.data?.gender || [],
+      age: res.data?.age || [],
+      region: res.data?.region || [],
+      sampleCount: Number(res.data?.sampleCount) || 0,
+      onlineCount: Number(res.data?.onlineCount) || 0
+    }
+  } catch (e) {
+    // 在线样本不足或接口暂不可用时保留上一次快照
+  }
+}
+
 function startTimers() {
   elapsedTimer = window.setInterval(() => {
     if (isLive.value) liveSeconds.value += 1
@@ -580,6 +808,7 @@ function startTimers() {
       nextTrack(true)
     } else {
       playProgress.value += 1
+      pushNowPlaying()
     }
   }, 1000)
 }
@@ -596,17 +825,20 @@ function nextTrack(auto = false) {
   if (!queue.value.length) return
   if (auto && loopMode.value === 'single') {
     playProgress.value = 0
+    pushNowPlaying(true)
     return
   }
   if (loopMode.value === 'order' && !auto && currentIndex.value >= queue.value.length - 1) return
   currentIndex.value = (currentIndex.value + 1) % queue.value.length
   playProgress.value = 0
+  pushNowPlaying(true)
 }
 
 function prevTrack() {
   if (!queue.value.length) return
   currentIndex.value = (currentIndex.value - 1 + queue.value.length) % queue.value.length
   playProgress.value = 0
+  pushNowPlaying(true)
 }
 
 function cycleMode() {
@@ -617,6 +849,7 @@ function selectTrack(index) {
   currentIndex.value = index
   playProgress.value = 0
   activeTab.value = 'queue'
+  pushNowPlaying(true)
 }
 
 function scrollDanmaku() {
@@ -650,6 +883,27 @@ function appendDanmaku(message) {
 
 let wsRetryTimer = null
 let wsStopped = false
+let lastNowPlayingPush = 0
+
+function pushNowPlaying(force = false) {
+  if (!ws || ws.readyState !== WebSocket.OPEN || !currentTrack.value) return
+  const now = Date.now()
+  if (!force && now - lastNowPlayingPush < 2500) return
+  lastNowPlayingPush = now
+  const track = currentTrack.value
+  const duration = Number(track.duration) || 240
+  ws.send(JSON.stringify({
+    type: 'NOW_PLAYING',
+    songId: track.id,
+    songName: track.name,
+    singerName: track.singerName,
+    coverUrl: track.coverUrl,
+    duration,
+    progress: Math.max(0, Math.min(100, Math.round((playProgress.value / duration) * 100))),
+    queueIndex: currentIndex.value,
+    queueLength: queue.value.length
+  }))
+}
 
 function connectWs() {
   if (wsStopped || !roomId || !room.value) return
@@ -664,6 +918,7 @@ function connectWs() {
     heartbeat = window.setInterval(() => {
       if (ws?.readyState === WebSocket.OPEN) ws.send('ping')
     }, 25000)
+    window.setTimeout(() => pushNowPlaying(true), 400)
   }
   ws.onmessage = (event) => {
     if (event.data === 'pong') return
@@ -745,15 +1000,81 @@ async function copyPushUrl() {
   }
 }
 
+async function copyBroadcastUrl() {
+  if (!room.value) return
+  const url = `${location.origin}${location.pathname}#/studio/live/${room.value.id}/broadcast`
+  try {
+    await navigator.clipboard.writeText(url)
+    ElMessage.success('直播画面地址已复制，粘贴到 OBS「浏览器源」即可')
+  } catch (e) {
+    ElMessage.warning('复制失败，请手动打开预览画面地址')
+  }
+}
+
 function openEndConfirm() {
   if (!isLive.value) return
   showEndConfirm.value = true
 }
 
+async function loadObsConfig() {
+  try {
+    const res = await liveApi.obsConfig()
+    const data = res.data || {}
+    if (!localStorage.getItem('km_obs_ws_url') && data.websocketUrl) obsForm.url = data.websocketUrl
+    if (!obsForm.password && data.password) obsForm.password = data.password
+  } catch (e) {
+    // 非主播或 OBS 配置不可读时保持手动输入
+  }
+}
+
+async function openObsDialog() {
+  await loadObsConfig()
+  obsDialog.value = true
+}
+
+function saveObsConfig() {
+  localStorage.setItem('km_obs_ws_url', obsForm.url.trim())
+  localStorage.setItem('km_obs_ws_password', obsForm.password)
+  localStorage.setItem('km_obs_auto', obsForm.auto ? '1' : '0')
+  localStorage.setItem('km_obs_source', obsForm.source)
+  localStorage.setItem('km_obs_page', obsForm.page)
+  localStorage.setItem('km_obs_custom_page', obsForm.customPage.trim())
+  obsDialog.value = false
+  ElMessage.success('OBS 自动推流设置已保存')
+}
+
+function selectedPageUrl() {
+  if (obsForm.page === 'custom') {
+    const value = obsForm.customPage.trim()
+    if (/^https?:\/\//i.test(value)) return value
+    if (!value) return `${location.origin}${location.pathname}#/studio/live/${room.value?.id || ''}/broadcast`
+    return `${location.origin}${location.pathname}#${value.startsWith('/') ? value : `/${value}`}`
+  }
+  const selected = obsPages.find((page) => page.value === obsForm.page)
+  const path = (selected?.path || '/').replace('{id}', room.value?.id || '')
+  return `${location.origin}${location.pathname}#${path}`
+}
+
 async function startFromConsole() {
   if (!room.value || isLive.value) return
+  if (!obsForm.password) await loadObsConfig()
+  let obsStarted = false
+  if (obsForm.auto) {
+    try {
+      const result = await pushToObs(
+        { url: obsForm.url.trim(), password: obsForm.password },
+        pushUrl.value || room.value.pushUrl,
+        obsForm.source === 'page' ? selectedPageUrl() : '',
+        obsForm.source
+      )
+      obsStarted = true
+      ElMessage.success(result.alreadyStreaming ? 'OBS 已在推流' : '推流地址已写入 OBS，正在开始推流')
+    } catch (e) {
+      ElMessage.warning(`OBS 自动推流失败：${e?.message || '请检查 OBS WebSocket 设置'}，已切换自动演示画面`)
+    }
+  }
   try {
-    const res = await liveApi.start(room.value.id)
+    const res = await liveApi.start(room.value.id, { skipAutoPush: obsStarted })
     room.value = { ...room.value, ...(res.data || {}), status: res.data?.status || 'LIVING' }
     startedAtMs.value = Date.now()
     liveSeconds.value = 0
@@ -762,7 +1083,7 @@ async function startFromConsole() {
     metrics.likes = 0
     metrics.gifts = 0
     metrics.peak = 0
-    ElMessage.success('已开播')
+    ElMessage.success(obsStarted ? '已开播，OBS 正在推流' : '已开播')
   } catch (e) {
     ElMessage.error(e?.message || '开播失败，请稍后重试')
   }
@@ -779,17 +1100,36 @@ async function confirmEnd() {
   endingProgress.value = 0
   window.setTimeout(() => { endingProgress.value = 100 }, 40)
   const endTime = new Date()
+  let obsStopResult = null
   try {
-    await Promise.all([liveApi.stop(room.value.id), wait(1800)])
+    // 先停 OBS，避免后端下播后 OBS 仍在推流把房间重新标记为直播中
+    if (obsForm.url) {
+      try {
+        obsStopResult = await Promise.race([
+          stopObsStream({ url: obsForm.url.trim(), password: obsForm.password }),
+          wait(2500)
+        ])
+      } catch (e) {
+        // OBS 未启动/未推流时静默忽略，不阻塞下播
+      }
+    }
+    try {
+      await Promise.all([liveApi.stop(room.value.id), wait(1800)])
+    } catch (e) {
+      // OBS 已停止后，状态监控可能先把房间置为 ENDED，后端再次 stop 会提示已结束
+      if (!String(e?.message || '').includes('已结束')) throw e
+    }
     const sessionId = createSessionId(room.value.id)
     const report = buildLiveReport({
       room: room.value,
       sessionId,
       startTime: new Date(startedAtMs.value),
       endTime,
-      metrics: { peakOnline: peakOnline.value, online: metrics.online, giftIncome: metrics.gifts }
+      metrics: { peakOnline: peakOnline.value, online: metrics.online, giftIncome: metrics.gifts },
+      audience: audience.value.sampleCount ? audience.value : null
     })
     saveLiveReport(report)
+    ElMessage.success(obsStopResult?.stopped ? '已下播，OBS 推流已停止' : '已下播')
     router.push(`/studio/report/${sessionId}`)
   } catch (e) {
     ending.value = false
@@ -799,8 +1139,12 @@ async function confirmEnd() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadRoom(), loadQueue()])
+  await loadRoom()
+  await loadQueue()
   await Promise.all([loadDanmaku(), loadGifts()])
+  loadObsConfig()
+  loadAudience()
+  audienceTimer = window.setInterval(loadAudience, 6000)
   scrollDanmaku()
   startTimers()
   connectWs()
@@ -808,6 +1152,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimers()
+  if (audienceTimer) window.clearInterval(audienceTimer)
   disconnectWs()
 })
 </script>
@@ -859,7 +1204,7 @@ onBeforeUnmount(() => {
   50% { box-shadow: 0 0 0 7px rgba(239, 45, 86, 0); }
 }
 .top-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.top-title strong { font-size: 16px; letter-spacing: -.03em; }
+.top-title h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.03em; }
 .top-title span { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--km-text-faint); font-size: 11.5px; }
 .elapsed-box { display: flex; align-items: baseline; gap: 8px; color: var(--km-text-faint); font-size: 11px; }
 .elapsed-box b { color: #f7d774; font-size: 18px; letter-spacing: .03em; }
@@ -981,6 +1326,29 @@ onBeforeUnmount(() => {
 
 /* 正在播放 */
 .queue-position { color: var(--km-text-faint); font-size: 10.5px; padding-top: 5px; }
+.setlist-edit { margin-left: auto; height: 24px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--km-border); background: transparent; color: var(--km-text-dim); font-size: 11px; cursor: pointer; }
+.setlist-edit:hover { color: var(--km-accent); border-color: rgba(245,180,91,.5); }
+.setlist-dialog { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.sd-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.sd-head { font-size: 12px; color: var(--km-text-dim); }
+.sd-empty { font-size: 12px; color: var(--km-text-faint); padding: 12px 0; }
+.pl-list { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow: auto; }
+.pl-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-radius: 8px; border: 1px solid transparent; background: rgba(255,255,255,.03); color: var(--km-text); font-size: 12px; cursor: pointer; }
+.pl-item:hover { border-color: var(--km-border); }
+.pl-item small { color: var(--km-text-faint); }
+.cand-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow: auto; }
+.cand-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; border: 0; background: transparent; color: var(--km-text); font-size: 12px; cursor: pointer; text-align: left; }
+.cand-row:hover { background: rgba(255,255,255,.05); }
+.cand-row .nm { flex: 1; }
+.cand-row small { color: var(--km-text-faint); }
+.cand-row b { color: var(--km-accent); }
+.pick-row { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--km-border); border-radius: 8px; font-size: 12px; }
+.pick-row .idx { color: var(--km-text-faint); width: 18px; }
+.pick-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-row small { color: var(--km-text-faint); }
+.pick-row .mini { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--km-border); background: transparent; color: var(--km-text-dim); cursor: pointer; }
+.pick-row .mini:disabled { opacity: .35; cursor: not-allowed; }
+.pick-row .mini.danger { color: #ff9fb0; }
 .now-body { display: flex; align-items: stretch; gap: 15px; }
 .now-cover { width: 104px; height: 104px; flex: none; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,.08); }
 .now-main { display: flex; flex: 1; min-width: 0; flex-direction: column; justify-content: space-between; gap: 8px; }
@@ -998,6 +1366,13 @@ onBeforeUnmount(() => {
 .track-progress-row { display: flex; align-items: center; gap: 8px; color: var(--km-text-faint); font-size: 10px; }
 .track-range { flex: 1; height: 3px; accent-color: var(--km-accent); cursor: pointer; }
 .empty-inline { padding: 26px 0; color: var(--km-text-faint); font-size: 12px; text-align: center; }
+.audience-groups { display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 14px; }
+.audience-group h4 { margin: 0 0 8px; color: var(--km-text-dim); font-size: 10.5px; font-weight: 650; }
+.audience-row { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.audience-name { width: 38px; flex: none; color: var(--km-text-faint); font-size: 9.5px; }
+.audience-track { flex: 1; height: 5px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.07); }
+.audience-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8b5cf6, #f0abfc); }
+.audience-row b { width: 30px; flex: none; color: var(--km-text-dim); text-align: right; font-size: 9.5px; font-weight: 500; }
 
 /* 房间信息 */
 .room-code { color: var(--km-text-faint); font-size: 9.5px; letter-spacing: .12em; padding-top: 5px; }
@@ -1014,6 +1389,10 @@ onBeforeUnmount(() => {
 .copy-btn:hover { background: rgba(216,180,254,.08); }
 .copy-btn:disabled { opacity: .4; cursor: not-allowed; }
 .push-copy-box small { display: block; margin-top: 6px; color: var(--km-text-faint); font-size: 9.5px; }
+.broadcast-hint { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.broadcast-hint a { color: var(--km-accent); font-size: 10px; text-decoration: none; }
+.broadcast-hint a:hover { text-decoration: underline; }
+.obs-tip { margin: 4px 0 0; color: var(--km-text-faint); font-size: 11px; line-height: 1.6; }
 
 /* 互动栏 */
 .interaction-tabs { display: flex; flex: none; padding: 9px 10px 0; border-bottom: 1px solid var(--km-border); gap: 2px; }
@@ -1093,26 +1472,26 @@ onBeforeUnmount(() => {
 
 /* 结束确认 */
 .end-backdrop, .ending-overlay { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 22px; background: rgba(2, 1, 5, .74); backdrop-filter: blur(10px); }
-.end-modal { position: relative; width: min(460px, 94vw); padding: 28px; border: 1px solid rgba(216,180,254,.18); border-radius: 18px; background: radial-gradient(600px 220px at 50% -20%, rgba(216,180,254,.13), transparent 70%), #100c16; box-shadow: 0 28px 80px rgba(0,0,0,.6); }
-.modal-close { position: absolute; top: 12px; right: 14px; border: 0; background: transparent; color: var(--km-text-faint); font-size: 22px; line-height: 1; cursor: pointer; }
-.modal-close:hover { color: var(--km-text); }
+.end-modal { position: relative; width: min(460px, 94vw); padding: 28px; border: 1px solid #ece7f2; border-radius: 18px; background: radial-gradient(600px 220px at 50% -20%, rgba(216,180,254,.18), transparent 70%), #fff; box-shadow: 0 28px 80px rgba(40,22,63,.16); }
+.modal-close { position: absolute; top: 12px; right: 14px; border: 0; background: transparent; color: #8b8195; font-size: 22px; line-height: 1; cursor: pointer; }
+.modal-close:hover { color: #4f465a; }
 .end-mark { color: #ff8fa2; font-size: 9px; font-weight: 800; letter-spacing: .18em; }
 .end-modal h2 { margin: 8px 0 8px; font-size: 21px; letter-spacing: -.04em; }
 .end-desc { margin: 0; color: var(--km-text-faint); font-size: 11.5px; line-height: 1.7; }
 .end-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 20px 0 14px; }
-.end-stats > div { padding: 10px 11px; border: 1px solid var(--km-border); border-radius: 8px; background: rgba(255,255,255,.025); }
-.end-stats span { display: block; color: var(--km-text-faint); font-size: 9.5px; }
-.end-stats b { display: block; margin-top: 4px; color: var(--km-text); font-size: 15px; }
-.end-stats small { color: var(--km-text-faint); font-size: 8.5px; font-weight: 400; }
-.end-hint { display: flex; align-items: flex-start; gap: 8px; padding: 10px 11px; border-radius: 8px; background: rgba(216,180,254,.06); color: var(--km-text-dim); font-size: 10.5px; line-height: 1.5; }
-.end-hint .el-icon { color: var(--km-accent); margin-top: 1px; }
+.end-stats > div { padding: 10px 11px; border: 1px solid #ece7f2; border-radius: 8px; background: #faf7fd; }
+.end-stats span { display: block; color: #776d83; font-size: 9.5px; }
+.end-stats b { display: block; margin-top: 4px; color: #1d1726; font-size: 15px; }
+.end-stats small { color: #776d83; font-size: 8.5px; font-weight: 400; }
+.end-hint { display: flex; align-items: flex-start; gap: 8px; padding: 10px 11px; border-radius: 8px; background: #faf4ff; color: #5f5769; font-size: 10.5px; line-height: 1.5; }
+.end-hint .el-icon { color: #8b3fce; margin-top: 1px; }
 .end-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
 .cancel-btn, .confirm-btn { height: 36px; padding: 0 16px; border-radius: 8px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.cancel-btn { border: 1px solid var(--km-border); background: transparent; color: var(--km-text-dim); }
-.cancel-btn:hover { color: var(--km-text); border-color: var(--km-border-strong); }
-.confirm-btn { border: 1px solid rgba(251,113,133,.32); background: rgba(251,113,133,.12); color: #ff8fa2; }
-.confirm-btn:hover { background: rgba(251,113,133,.2); }
-.ending-card { width: min(390px, 92vw); display: flex; flex-direction: column; align-items: center; padding: 30px 26px; border: 1px solid var(--km-border); border-radius: 17px; background: #100c16; text-align: center; }
+.cancel-btn { border: 1px solid #e1d9e9; background: #fff; color: #5f5769; }
+.cancel-btn:hover { color: #1d1726; border-color: #d3bce6; background: #faf6fe; }
+.confirm-btn { border: 1px solid #f0c6cc; background: #fff5f6; color: #b4233a; }
+.confirm-btn:hover { background: #ffecef; }
+.ending-card { width: min(390px, 92vw); display: flex; flex-direction: column; align-items: center; padding: 30px 26px; border: 1px solid #ece7f2; border-radius: 17px; background: #fff; box-shadow: 0 24px 70px rgba(40,22,63,.14); text-align: center; }
 .ending-ring { width: 42px; height: 42px; margin-bottom: 14px; border: 2px solid rgba(216,180,254,.18); border-top-color: var(--km-accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .ending-card h2 { margin: 5px 0 5px; font-size: 17px; }

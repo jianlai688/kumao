@@ -3,14 +3,14 @@
     <!-- 状态卡 -->
     <div class="mon-grid">
       <div class="stat-card">
-        <div class="stat-ico">📚</div>
+        <div class="stat-ico" aria-hidden="true"><el-icon><Collection /></el-icon></div>
         <div>
           <div class="value">{{ monitor.docCount ?? 0 }}</div>
           <div class="label">索引文档数</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-ico">⚡</div>
+        <div class="stat-ico" aria-hidden="true"><el-icon><Lightning /></el-icon></div>
         <div>
           <div class="value" :class="monitor.esAvailable ? 'ok' : 'bad'">
             {{ monitor.esAvailable ? '正常' : '不可用' }}
@@ -19,7 +19,7 @@
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-ico">🗂️</div>
+        <div class="stat-ico" aria-hidden="true"><el-icon><FolderOpened /></el-icon></div>
         <div>
           <div class="value small">{{ monitor.index || 'kumao_search' }}</div>
           <div class="label">索引名称（ES 不可用时降级 MySQL）</div>
@@ -129,29 +129,31 @@ onMounted(loadMonitor)
   display: flex;
   align-items: center;
   gap: 15px;
-  background: linear-gradient(160deg, #16171c, #111216);
-  border: 1px solid var(--km-border);
-  border-radius: 18px;
   padding: 20px 22px;
-  transition: all .2s;
+  border: 1px solid #ece7f2;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff, #fdfbff);
+  box-shadow: 0 8px 22px rgba(61, 36, 92, .035);
+  transition: border-color .2s, box-shadow .2s, transform .2s;
 }
-.stat-card:hover { border-color: var(--km-border-strong); }
+.stat-card:hover { border-color: #ddc9ee; box-shadow: 0 10px 26px rgba(61, 36, 92, .07); transform: translateY(-1px); }
 .stat-ico {
   width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: rgba(192, 132, 252, .08);
-  border: 1px solid rgba(192, 132, 252, .16);
+  background: #f8f0ff;
+  border: 1px solid #eadcf6;
+  color: #8b3fce;
   font-size: 17px;
   flex-shrink: 0;
 }
-.value { font-size: 26px; font-weight: 900; letter-spacing: -1px; line-height: 1.15; }
+.value { color: #211a2a; font-size: 26px; font-weight: 800; letter-spacing: -.035em; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .value.small { font-size: 17px; letter-spacing: -.3px; }
-.value.ok { color: var(--km-accent); }
-.value.bad { color: #ff8095; }
-.label { font-size: 11.5px; color: var(--km-text-faint); margin-top: 4px; }
+.value.ok { color: #0d8a61; }
+.value.bad { color: #c4242a; }
+.label { font-size: 11.5px; color: #6f657b; margin-top: 5px; }
 
 .sync-note {
   padding: 12px 14px;

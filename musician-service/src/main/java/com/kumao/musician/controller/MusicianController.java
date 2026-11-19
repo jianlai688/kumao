@@ -39,6 +39,12 @@ public class MusicianController {
 
     // ---------------- 主页 ----------------
 
+    @PutMapping("/mine")
+    public R<Void> updateMine(@RequestBody com.kumao.musician.dto.MusicianProfileRequest req) {
+        musicianService.updateMyProfile(UserContext.requireUserId(), req);
+        return R.ok();
+    }
+
     @GetMapping("/page")
     public R<PageResult<Musician>> page(PageQuery query, @RequestParam(required = false) String style) {
         return R.ok(musicianService.pageMusicians(query, style));
@@ -240,4 +246,5 @@ public class MusicianController {
         return R.ok();
     }
 }
+
 

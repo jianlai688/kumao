@@ -1,10 +1,44 @@
 <script>
+import { applyTheme, loadTheme } from '@/utils/theme'
+import { getApiBase } from '@/utils/server'
+
+/** 启动自检：公网隧道域名变了会表现为「网络异常」，这里直接给出去改地址的入口。 */
+function checkServer() {
+  const base = getApiBase()
+  if (!/^https?:\/\//i.test(base)) return
+  uni.request({
+    url: `${base}/music/banners`,
+    method: 'GET',
+    timeout: 8000,
+    success: (res) => {
+      const body = res.data
+      if (res.statusCode === 200 && body && body.code === 200) return
+      warnServer(base)
+    },
+    fail: () => warnServer(base)
+  })
+}
+
+function warnServer(base) {
+  uni.showModal({
+    title: '连接服务器失败',
+    content: `当前接口地址：${base}\n如果是公网演示地址变了，请到「设置 → 服务器」填写新地址后保存。`,
+    confirmText: '去设置',
+    cancelText: '知道了',
+    success: (res) => {
+      if (res.confirm) uni.navigateTo({ url: '/pages/settings/settings' })
+    }
+  })
+}
+
 export default {
   onLaunch() {
     const token = uni.getStorageSync('km_token')
     if (token) {
       console.log('已登录')
     }
+    applyTheme(loadTheme())
+    setTimeout(checkServer, 1200)
   }
 }
 </script>
@@ -160,3 +194,4 @@ view, text, image, scroll-view, swiper, swiper-item {
   backdrop-filter: blur(20rpx);
 }
 </style>
+

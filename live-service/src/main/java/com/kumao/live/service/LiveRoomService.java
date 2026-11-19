@@ -35,6 +35,8 @@ public class LiveRoomService {
     private final VipClient vipClient;
     private final SearchClient searchClient;
     private final LiveWebSocketHandler webSocketHandler;
+    private final LiveSettlementService settlementService;
+    private final AutoPushService autoPushService;
 
     public PageResult<RoomVO> square(PageQuery query, String category, String scene) {
         Page<LiveRoom> page = roomMapper.selectPage(query.toPage(),
@@ -108,6 +110,27 @@ public class LiveRoomService {
         return room.getId();
     }
 
+    /**
+     * 开播前设置直播歌单：仅主播本人可改，最多 50 首，按顺序播放。
+     */
+    public void updatePlaylist(Long roomId, Long anchorId, String songIds) {
+        LiveRoom room = requireOwned(roomId, anchorId);
+        room.setPlaylistIds(normalizeSongIds(songIds));
+        roomMapper.updateById(room);
+    }
+
+    private String normalizeSongIds(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        return java.util.Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(s -> s.matches("\\d{1,19}"))
+                .distinct()
+                .limit(50)
+                .collect(java.util.stream.Collectors.joining(","));
+    }
+
     public void update(Long roomId, Long anchorId, RoomRequest req) {
         LiveRoom room = requireOwned(roomId, anchorId);
         room.setTitle(req.getTitle());
@@ -127,10 +150,15 @@ public class LiveRoomService {
         syncSearch(room);
     }
 
-    /**
-     * 开播：状态置为 LIVING，生成推流地址
-     */
     public LiveRoom start(Long roomId, Long anchorId) {
+        return start(roomId, anchorId, false);
+    }
+
+    /**
+     * 开播：状态置为 LIVING，生成推流地址；没有现成推流时自动启动演示推流。
+     * skipAutoPush=true 用于前端已经控制 OBS 开始推流的场景，避免重复推同一路流。
+     */
+    public LiveRoom start(Long roomId, Long anchorId, boolean skipAutoPush) {
         LiveRoom room = requireOwned(roomId, anchorId);
         if ("BANNED".equals(room.getStatus())) {
             throw new BizException("直播间已被封禁，无法开播");
@@ -138,10 +166,14 @@ public class LiveRoomService {
         if ("LIVING".equals(room.getStatus())) {
             throw new BizException("直播间已在直播中");
         }
-        room.setStatus("LIVING");
-        room.setLiveStartedAt(LocalDateTime.now());
         room.setPushUrl(pushAuthService.buildPushUrl(room));
         room.setPullUrl(pushAuthService.buildPullUrl(room));
+        // 主播可能已经用 OBS/手机推流，只有 SRS 上没有流时才自动推流
+        if (!skipAutoPush) {
+            autoPushService.startIfNeeded(room);
+        }
+        room.setStatus("LIVING");
+        room.setLiveStartedAt(LocalDateTime.now());
         // 每场直播重新累计真实互动数据
         room.setOnlineCount(0L);
         room.setPeakOnline(0L);
@@ -164,6 +196,7 @@ public class LiveRoomService {
     @Transactional(rollbackFor = Exception.class)
     public LiveRoom stop(Long roomId, Long anchorId) {
         LiveRoom room = requireOwned(roomId, anchorId);
+        autoPushService.stop(roomId);
         if ("ENDED".equals(room.getStatus())) {
             throw new BizException("直播间已结束");
         }
@@ -176,6 +209,8 @@ public class LiveRoomService {
         // SRS 录制回放：实际由 SRS on_dvr 回调写入 MinIO，这里生成预期地址
         room.setReplayUrl(String.format("%s/replay/%s.mp4", "http://127.0.0.1:9000/kumao", "room_" + roomId));
         roomMapper.updateById(room);
+        // 下播结算：按本场礼物总额结算，平台抽成后剩余归主播
+        settlementService.settle(room);
         onlineCountService.clear(roomId);
         syncSearch(room);
         return room;
@@ -203,6 +238,7 @@ public class LiveRoomService {
         if ("LIVING".equals(room.getStatus())) {
             throw new BizException("直播中不可删除，请先下播");
         }
+        autoPushService.stop(roomId);
         roomMapper.deleteById(roomId);
         try {
             searchClient.delete("LIVE_ROOM", roomId);
@@ -234,6 +270,9 @@ public class LiveRoomService {
     @Transactional(rollbackFor = Exception.class)
     public void ban(Long roomId, boolean banned, String reason) {
         LiveRoom room = require(roomId);
+        if (banned) {
+            autoPushService.stop(roomId);
+        }
         room.setBanned(banned ? 1 : 0);
         room.setBanReason(banned ? reason : null);
         if (banned) {

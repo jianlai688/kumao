@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,19 +37,24 @@ public class AdService {
     private final AdMaterialMapper materialMapper;
     private final AdPlanMapper planMapper;
     private final AdStatDailyMapper statMapper;
+    private final AdSlotPriceMapper slotPriceMapper;
     private final UserClient userClient;
 
-    private static final Map<String, BigDecimal> SLOT_DAILY_PRICES = Map.of(
+    private static final List<String> SLOT_ORDER = List.of("SPLASH", "HOME_BANNER", "LIVE", "PLAYER", "VIP_REWARD");
+
+    private static final Map<String, BigDecimal> DEFAULT_SLOT_DAILY_PRICES = Map.of(
             "SPLASH", new BigDecimal("800.00"),
             "HOME_BANNER", new BigDecimal("520.00"),
             "LIVE", new BigDecimal("300.00"),
-            "PLAYER", new BigDecimal("200.00"));
+            "PLAYER", new BigDecimal("200.00"),
+            "VIP_REWARD", new BigDecimal("100.00"));
 
     private static final Map<String, String> SLOT_NAMES = Map.of(
             "SPLASH", "开屏广告",
             "HOME_BANNER", "首页 Banner",
             "LIVE", "直播页",
-            "PLAYER", "播放页");
+            "PLAYER", "播放页",
+            "VIP_REWARD", "VIP 激励视频");
 
     // ---------------- 入驻 ----------------
 
@@ -63,6 +69,9 @@ public class AdService {
         advertiser.setUserId(userId);
         advertiser.setCompanyName(req.getCompanyName());
         advertiser.setRealName(req.getRealName());
+        advertiser.setIdCard(req.getIdCard());
+        advertiser.setIdCardFrontUrl(req.getIdCardFrontUrl());
+        advertiser.setIdCardBackUrl(req.getIdCardBackUrl());
         advertiser.setAdType(req.getAdType());
         advertiser.setIntro(req.getIntro());
         advertiser.setAvatar(req.getAvatar());
@@ -81,6 +90,24 @@ public class AdService {
         return advertiserMapper.selectOne(new LambdaQueryWrapper<Advertiser>().eq(Advertiser::getUserId, userId));
     }
 
+    /**
+     * 广告主修改个人信息
+     */
+    public void updateMyProfile(Long userId, com.kumao.ad.dto.AdvertiserProfileRequest req) {
+        Advertiser advertiser = requireApproved(userId);
+        if (req.getCompanyName() != null) {
+            if (req.getCompanyName().isBlank()) {
+                throw new BizException("主体名称不能为空");
+            }
+            advertiser.setCompanyName(req.getCompanyName().trim());
+        }
+        if (req.getRealName() != null) advertiser.setRealName(req.getRealName());
+        if (req.getAvatar() != null) advertiser.setAvatar(req.getAvatar());
+        if (req.getAdType() != null) advertiser.setAdType(req.getAdType());
+        if (req.getIntro() != null) advertiser.setIntro(req.getIntro());
+        if (req.getRepresentative() != null) advertiser.setRepresentative(req.getRepresentative());
+        advertiserMapper.updateById(advertiser);
+    }
     public Advertiser requireApproved(Long userId) {
         Advertiser advertiser = mine(userId);
         if (advertiser == null || !"APPROVED".equals(advertiser.getStatus())) {
@@ -93,6 +120,11 @@ public class AdService {
         Advertiser advertiser = advertiserMapper.selectById(advertiserId);
         if (advertiser == null) {
             throw new BizException("广告制作人申请不存在");
+        }
+        if (approved && (!StringUtils.hasText(advertiser.getIdCard())
+                || !StringUtils.hasText(advertiser.getIdCardFrontUrl())
+                || !StringUtils.hasText(advertiser.getIdCardBackUrl()))) {
+            throw new BizException("请先核验身份证号及正反面照片，再通过审核");
         }
         advertiser.setStatus(approved ? "APPROVED" : "REJECTED");
         advertiser.setRejectReason(approved ? null : reason);
@@ -219,16 +251,71 @@ public class AdService {
     // ---------------- 投放计划 ----------------
 
     public List<Map<String, Object>> pricing() {
+        Map<String, AdSlotPrice> configured = new LinkedHashMap<>();
+        slotPriceMapper.selectList(null).forEach(item -> configured.put(item.getSlot(), item));
         List<Map<String, Object>> result = new ArrayList<>();
-        for (String slot : List.of("SPLASH", "HOME_BANNER", "LIVE", "PLAYER")) {
+        for (String slot : SLOT_ORDER) {
+            AdSlotPrice stored = configured.get(slot);
+            BigDecimal dailyPrice = stored != null && stored.getDailyPrice() != null
+                    && stored.getDailyPrice().compareTo(BigDecimal.ZERO) > 0
+                    ? stored.getDailyPrice()
+                    : DEFAULT_SLOT_DAILY_PRICES.get(slot);
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("slot", slot);
             row.put("name", SLOT_NAMES.get(slot));
-            row.put("dailyPrice", SLOT_DAILY_PRICES.get(slot));
+            row.put("dailyPrice", dailyPrice);
             row.put("minDays", 1);
             result.add(row);
         }
         return result;
+    }
+
+    /**
+     * 管理员调整广告位日单价。只影响之后创建的计划，已有计划保持创建时金额。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updatePricing(List<AdSlotPrice> prices) {
+        if (prices == null || prices.isEmpty()) {
+            throw new BizException("请至少配置一个广告位价格");
+        }
+        for (AdSlotPrice input : prices) {
+            String slot = input.getSlot() == null ? "" : input.getSlot().trim().toUpperCase();
+            if (!SLOT_NAMES.containsKey(slot)) {
+                throw new BizException("不支持的广告位");
+            }
+            BigDecimal price = input.getDailyPrice();
+            if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BizException(SLOT_NAMES.get(slot) + "的日单价必须大于 0");
+            }
+            if (price.compareTo(new BigDecimal("1000000")) > 0) {
+                throw new BizException(SLOT_NAMES.get(slot) + "的日单价过高");
+            }
+            AdSlotPrice row = slotPriceMapper.selectById(slot);
+            boolean created = row == null;
+            if (created) {
+                row = new AdSlotPrice();
+                row.setSlot(slot);
+            }
+            row.setName(SLOT_NAMES.get(slot));
+            row.setDailyPrice(price.setScale(2, RoundingMode.HALF_UP));
+            if (created) {
+                slotPriceMapper.insert(row);
+            } else {
+                slotPriceMapper.updateById(row);
+            }
+        }
+    }
+
+    private BigDecimal resolveDailyPrice(String slot) {
+        if (!SLOT_NAMES.containsKey(slot)) {
+            return null;
+        }
+        AdSlotPrice stored = slotPriceMapper.selectById(slot);
+        if (stored != null && stored.getDailyPrice() != null
+                && stored.getDailyPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return stored.getDailyPrice();
+        }
+        return DEFAULT_SLOT_DAILY_PRICES.get(slot);
     }
 
     public AdPlan createPlan(Long userId, PlanRequest req) {
@@ -241,7 +328,7 @@ public class AdService {
             throw new BizException("投放结束时间必须晚于开始时间");
         }
         String slot = req.getSlot().toUpperCase();
-        BigDecimal dailyPrice = SLOT_DAILY_PRICES.get(slot);
+        BigDecimal dailyPrice = resolveDailyPrice(slot);
         if (dailyPrice == null) {
             throw new BizException("不支持的广告位");
         }
@@ -309,6 +396,51 @@ public class AdService {
             case "PAUSE" -> plan.setStatus("PAUSED");
             case "RESUME" -> plan.setStatus("RUNNING");
             case "FINISH" -> plan.setStatus("FINISHED");
+            default -> throw new BizException("不支持的操作: " + action);
+        }
+        planMapper.updateById(plan);
+    }
+
+    /**
+     * 管理员对已支付计划执行暂停 / 续投 / 终止。
+     * 与广告主自助操作一致，操作不影响已产生的投流费用。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void adminUpdatePlanStatus(Long planId, String action) {
+        AdPlan plan = planMapper.selectById(planId);
+        if (plan == null) {
+            throw new BizException("投放计划不存在");
+        }
+        if (!"PAID".equals(plan.getPaymentStatus())) {
+            throw new BizException("该投放计划尚未完成付费，暂不能操作");
+        }
+        String normalized = action == null ? "" : action.trim().toUpperCase();
+        switch (normalized) {
+            case "PAUSE" -> {
+                if (!"RUNNING".equals(plan.getStatus())) {
+                    throw new BizException("只有投放中的计划可以暂停");
+                }
+                plan.setStatus("PAUSED");
+            }
+            case "RESUME" -> {
+                if (!"PAUSED".equals(plan.getStatus())) {
+                    throw new BizException("只有已暂停的计划可以续投");
+                }
+                AdMaterial material = materialMapper.selectById(plan.getMaterialId());
+                if (material == null || !"APPROVED".equals(material.getStatus())) {
+                    throw new BizException("广告素材未审核通过，暂不可续投");
+                }
+                if (plan.getEndTime() != null && plan.getEndTime().isBefore(LocalDateTime.now())) {
+                    throw new BizException("投放周期已结束，无法续投");
+                }
+                plan.setStatus("RUNNING");
+            }
+            case "FINISH" -> {
+                if (!"RUNNING".equals(plan.getStatus()) && !"PAUSED".equals(plan.getStatus())) {
+                    throw new BizException("只有投放中或已暂停的计划可以终止");
+                }
+                plan.setStatus("FINISHED");
+            }
             default -> throw new BizException("不支持的操作: " + action);
         }
         planMapper.updateById(plan);

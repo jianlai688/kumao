@@ -124,6 +124,7 @@ public class SongService {
         song.setStyle(req.getStyle());
         song.setRegion(req.getRegion());
         song.setVipOnly(Boolean.TRUE.equals(req.getVipOnly()));
+        song.setPrice(req.getPrice() == null ? 0 : Math.max(0, req.getPrice()));
         song.setStatus(req.getStatus());
         song.setReleaseDate(req.getReleaseDate());
         song.setMusicianId(req.getMusicianId());

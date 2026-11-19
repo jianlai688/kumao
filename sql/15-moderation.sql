@@ -1,5 +1,5 @@
 -- ============================================================
--- 内容安全：评论 / 弹幕 AI 审核后的用户禁言
+-- 内容安全：用户禁言字段（管理 / 风控使用，AI 审核不再自动禁言）
 -- 字段为 null 或早于当前时间表示未禁言
 -- ============================================================
 USE `kumao_music`;
@@ -14,7 +14,7 @@ SET @column_exists = (
 
 SET @ddl = IF(
     @column_exists = 0,
-    'ALTER TABLE `sys_user` ADD COLUMN `muted_until` DATETIME NULL COMMENT ''AI 审核违规禁言截止时间'' AFTER `last_login_time`',
+    'ALTER TABLE `sys_user` ADD COLUMN `muted_until` DATETIME NULL COMMENT ''禁言截止时间（管理/风控）'' AFTER `last_login_time`',
     'SELECT 1'
 );
 

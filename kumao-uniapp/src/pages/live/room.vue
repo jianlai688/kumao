@@ -550,7 +550,8 @@ async function sendGift(g) {
     return
   }
   try {
-    await api.sendGift({ roomId: Number(roomId), giftId: g.id, count: 1 })
+    // 直播间 ID 为雪花 ID，必须按字符串提交，Number() 会丢精度导致「直播间不存在」
+    await api.sendGift({ roomId, giftId: g.id, count: 1 })
     uni.showToast({ title: `已送出 ${g.name}`, icon: 'success' })
   } catch (e) { /* request handles toast */ }
 }
@@ -686,7 +687,7 @@ onUnload(() => {
 .live-pill {
   display: flex; align-items: center; gap: 5rpx; flex: none;
   height: 30rpx; padding: 0 10rpx; border-radius: 999rpx;
-  background: #f5b45b; color: #07080a; font-size: 16rpx; font-weight: 900; letter-spacing: 1rpx;
+  background: var(--km-accent); color: #07080a; font-size: 16rpx; font-weight: 900; letter-spacing: 1rpx;
 }
 .live-pill.offline { background: rgba(255,255,255,.16); color: rgba(255,255,255,.68); }
 .dot { width: 6rpx; height: 6rpx; border-radius: 50%; background: currentColor; }
@@ -698,7 +699,7 @@ onUnload(() => {
   color: #f3f4f6; font-size: 20rpx; backdrop-filter: blur(12rpx);
 }
 .tool-chip.icon-btn { width: 52rpx; justify-content: center; font-size: 30rpx; color: rgba(255,255,255,.82); }
-.conn-dot { width: 7rpx; height: 7rpx; border-radius: 50%; background: #f5b45b; }
+.conn-dot { width: 7rpx; height: 7rpx; border-radius: 50%; background: var(--km-accent); }
 .conn-dot.on { background: #4ade80; }
 
 .player-state {
@@ -718,7 +719,7 @@ onUnload(() => {
 
 .spinner {
   width: 34rpx; height: 34rpx; border-radius: 50%;
-  border: 4rpx solid rgba(255,255,255,.18); border-top-color: #f5b45b;
+  border: 4rpx solid rgba(255,255,255,.18); border-top-color: var(--km-accent);
   animation: spin .8s linear infinite;
 }
 .spinner.large { width: 58rpx; height: 58rpx; border-width: 5rpx; }
@@ -730,7 +731,7 @@ onUnload(() => {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10rpx;
   box-sizing: border-box;
 }
-.offline-eyebrow { font-size: 17rpx; font-weight: 800; letter-spacing: 3rpx; color: #f5b45b; }
+.offline-eyebrow { font-size: 17rpx; font-weight: 800; letter-spacing: 3rpx; color: var(--km-accent); }
 .offline-title { font-size: 38rpx; font-weight: 900; color: #f7f1e8; letter-spacing: -0.8rpx; }
 .offline-sub { font-size: 22rpx; line-height: 1.6; color: rgba(247,241,232,.44); text-align: center; }
 .follow-cta {
@@ -744,7 +745,7 @@ onUnload(() => {
 .room-title { display: block; font-size: 34rpx; font-weight: 900; letter-spacing: -.8rpx; color: #fff; text-shadow: 0 2rpx 14rpx rgba(0,0,0,.6); }
 .room-meta { display: flex; align-items: center; gap: 10rpx; margin-top: 10rpx; }
 .cat { padding: 4rpx 12rpx; border-radius: 6rpx; background: rgba(255,255,255,.15); color: #f3f4f6; font-size: 18rpx; }
-.outdoor { padding: 4rpx 12rpx; border-radius: 999rpx; background: #f5b45b; color: #07080a; font-size: 18rpx; font-weight: 800; }
+.outdoor { padding: 4rpx 12rpx; border-radius: 999rpx; background: var(--km-accent); color: #07080a; font-size: 18rpx; font-weight: 800; }
 .signal { display: flex; align-items: center; gap: 5rpx; color: rgba(243,244,246,.66); font-size: 20rpx; }
 .signal i { width: 7rpx; height: 7rpx; border-radius: 50%; background: #fb7185; box-shadow: 0 0 0 3rpx rgba(251,113,133,.18); }
 .signal.off i { background: #8a8497; box-shadow: none; }
@@ -782,7 +783,7 @@ onUnload(() => {
 .gift-shelf-label {
   display: inline-flex; flex-direction: column; justify-content: center;
   width: 72rpx; height: 100rpx; margin-right: 10rpx; vertical-align: top;
-  font-size: 19rpx; color: #f5b45b; font-weight: 800;
+  font-size: 19rpx; color: var(--km-accent); font-weight: 800;
 }
 .gift-shelf-label text:last-child { margin-top: 4rpx; font-size: 15rpx; color: rgba(247,241,232,.28); font-weight: 500; }
 .gift-item {
@@ -815,7 +816,7 @@ onUnload(() => {
 .ph { color: rgba(243,244,246,.28); }
 .send-btn {
   height: 72rpx; line-height: 72rpx; padding: 0 28rpx; flex: none;
-  border-radius: 999rpx; background: #f5b45b; color: #07080a;
+  border-radius: 999rpx; background: var(--km-accent); color: #07080a;
   font-size: 24rpx; font-weight: 800;
 }
 
@@ -828,6 +829,7 @@ onUnload(() => {
 }
 .sound-ico { font-size: 24rpx; }
 </style>
+
 
 
 

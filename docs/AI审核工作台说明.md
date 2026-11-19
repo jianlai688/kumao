@@ -16,7 +16,9 @@
 - 直播弹幕：`DANMAKU`
 - 歌手认证：`SINGER`
 
-AI 只返回 `PASS / REVIEW / REJECT` 建议、风险分和可解释依据，**不会自动改业务状态**。管理员在确认弹窗中最终确认后，前端调用各业务原有 admin API，再把结论写入统一 `review_log`。
+AI 对资质、广告、歌曲/MV、歌手等业务项目返回 `PASS / REVIEW / REJECT` 建议、风险分和可解释依据，管理员在确认弹窗中最终确认后，前端调用各业务原有 admin API，再把结论写入统一 `review_log`。
+
+评论与直播弹幕采用另一条同步链路：用户发送时立即调用审核模型，`PASS` 且低风险的内容自动发布；`REVIEW`、`REJECT` 或审核不可用的内容保存为待复核状态，不公开展示，由管理员在 AI 审核工作台或对应管理页处理。
 
 ## 2. 服务与数据流
 
@@ -28,8 +30,13 @@ admin-web
   ├─ 调用原业务 admin 审核/封禁/删除 API
   └─ POST /api/admin/ai/log     -> review_log 审核日志
 
-review-service 自动审核
-  ├─ 定时通过网关读取各业务待审队列
+用户发送评论 / 弹幕
+  ├─ comment-service / live-service 同步调用 POST /internal/ai/moderate
+  ├─ PASS + 低风险 -> 评论公开 / 弹幕广播
+  └─ REVIEW / REJECT / 超时 -> 保存为 status=2，交管理员复核
+
+review-service 定时自动审核
+  ├─ 定时通过网关读取资质、广告、歌曲/MV、歌手等待审队列
   ├─ 调用管理员配置的审核模型
   ├─ PASS + 低风险 + 自动通过分类 -> 调用原业务 admin API 自动处理
   └─ 其他结果 -> ai_review_task，等待管理员复核
@@ -44,6 +51,8 @@ review-service 自动审核
 mysql -h127.0.0.1 -P3307 -uroot -pkumao123456 kumao_music < sql/12-ai-review.sql
 mysql -h127.0.0.1 -P3307 -uroot -pkumao123456 kumao_music < sql/13-ai-model-config.sql
 mysql -h127.0.0.1 -P3307 -uroot -pkumao123456 kumao_music < sql/14-ai-auto-review.sql
+mysql -h127.0.0.1 -P3307 -uroot -pkumao123456 kumao_music < sql/15-moderation.sql
+mysql -h127.0.0.1 -P3307 -uroot -pkumao123456 kumao_music < sql/16-content-moderation-queue.sql
 
 # 构建并启动
 mvn -pl review-service -am -DskipTests package
@@ -85,7 +94,7 @@ MYSQL_PORT=3307 java -jar review-service/target/review-service.jar
 | `AI_AUTO_REVIEW_ENABLED` | `true` | 是否开启定时自动审核 |
 | `AI_AUTO_REVIEW_INTERVAL_MS` | `60000` | 自动审核间隔（毫秒） |
 | `AI_AUTO_REVIEW_PASS_RISK` | `35` | 自动通过的最高风险分 |
-| `AI_AUTO_REVIEW_CATEGORIES` | `ANCHOR_APPLY,MUSICIAN,ADVERTISER,AD_MATERIAL,AD_PLAN,SONG,MV,COMMENT,DANMAKU,SINGER` | 允许 AI 自动通过的分类，逗号分隔；可收紧为内容类 |
+| `AI_AUTO_REVIEW_CATEGORIES` | `ANCHOR_APPLY,MUSICIAN,ADVERTISER,AD_MATERIAL,AD_PLAN,SONG,MV,SINGER` | 允许定时任务自动通过的业务分类；评论/弹幕在发送时同步审核，不进入定时扫描 |
 | `AI_AUTO_REVIEW_MAX_ITEMS` | `60` | 单轮最多处理条数 |
 | `KUMAO_GATEWAY_URL` | `http://127.0.0.1:8080` | review-service 读取待审队列使用的内部网关地址 |
 | `DEEPSEEK_ENABLED` | `false` | 审核模型的环境变量兜底开关，页面配置优先生效 |
@@ -163,7 +172,7 @@ java -jar review-service/target/review-service.jar
 }
 ```
 
-`source` 为 `AI_MODEL` 或 `LOCAL_RULE`；使用外部模型时 `provider` / `model` 分别返回服务商与模型 ID。`decision` 只是建议，不是最终结论。
+`source` 为 `AI_MODEL`、`AI_MODEL_TEXT` 或 `LOCAL_RULE`；使用外部模型时 `provider` / `model` 分别返回服务商与模型 ID。对资质、广告等后台审核，`decision` 是管理员参考建议；评论/弹幕在发送时由业务服务按 `PASS + 风险阈值` 自动放行，其余转人工复核。
 
 ### `POST /api/admin/ai/log`
 
@@ -205,9 +214,9 @@ java -jar review-service/target/review-service.jar
 - 歌曲/MV：缺少音频/视频或封面；
 - 投放计划：未完成付费；
 - 直播间：已封禁、简介为空；
-- 资质类：缺少简介/资料，提示人工核验原件。
+- 资质类：缺少简介/资料，或主播、音乐人、广告商缺少身份证号及正反面照片时，提示人工核验。
 
-规则结果会写入 `signals` 和 `reasons`，管理员能看出为什么被标为高风险。规则不会自动执行审核动作。
+规则结果会写入 `signals` 和 `reasons`，管理员能看出为什么被标为高风险。本地规则本身只返回判定；评论/弹幕业务服务会在 `PASS` 且风险低于阈值时自动发布，其余情况转管理员复核。
 
 ## 8. 管理员确认与日志
 
@@ -225,13 +234,13 @@ java -jar review-service/target/review-service.jar
 
 review-service 启动后按 `AI_AUTO_REVIEW_INTERVAL_MS`（默认 60 秒）执行一轮自动审核：
 
-1. 使用内部服务账号（ADMIN）通过网关读取各业务待审队列；
+1. 使用内部服务账号（ADMIN）通过网关读取资质、广告、歌曲/MV、歌手等待审队列；
 2. 调用管理员配置的审核模型；模型未配置时整轮跳过，不修改业务数据；
-3. **自动通过条件**：`source=AI_MODEL`、`decision=PASS`、`riskScore < AI_AUTO_REVIEW_PASS_RISK`（默认 35），且分类在 `AI_AUTO_REVIEW_CATEGORIES`（默认除直播间外的全部待审分类）。命中后调用原业务 admin API，并写入 `review_log`；
-4. 其余结果写入 `ai_review_task`，状态为 `PENDING_ADMIN`，在管理端 AI 审核工作台展示 AI 建议，由管理员最终确认；确认后任务标记为 `RESOLVED`，避免同一评论/弹幕被反复分析；
+3. **自动通过条件**：`source=AI_MODEL`、`decision=PASS`、`riskScore < AI_AUTO_REVIEW_PASS_RISK`（默认 35），且分类在 `AI_AUTO_REVIEW_CATEGORIES`；主播、音乐人、广告商还要求身份证号及正反面照片齐全。命中后调用原业务 admin API，并写入 `review_log`；
+4. 其余结果写入 `ai_review_task`，状态为 `PENDING_ADMIN`，在管理端 AI 审核工作台展示 AI 建议，由管理员最终确认；确认后任务标记为 `RESOLVED`；
 5. 自动处理失败写入 `APPROVAL_FAILED` 和失败原因，仍进入人工复核，不伪装成成功。
 
-直播房间不在自动扫描范围，避免对正在直播的内容做不可控的自动处理；如只想自动通过内容类，可把 `AI_AUTO_REVIEW_CATEGORIES` 收紧为 `COMMENT,DANMAKU,SONG,MV,AD_MATERIAL`。
+评论和直播弹幕不在此定时任务的扫描范围内：它们在用户发送时同步审核，避免内容先公开、后补审；审核未通过的内容直接进入管理端待复核队列。
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |

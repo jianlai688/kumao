@@ -70,7 +70,10 @@
     <div v-else class="square-empty">
       <span class="empty-ring" aria-hidden="true"></span>
       <p>暂无正在直播的房间</p>
-      <button v-if="userStore.hasRole('ANCHOR')" class="studio-btn" @click="$router.push('/studio/anchor')">去开播</button>
+      <div class="empty-actions">
+        <button class="empty-refresh" @click="reload">刷新直播</button>
+        <button v-if="userStore.hasRole('ANCHOR')" class="studio-btn" @click="$router.push('/studio/anchor')">去开播</button>
+      </div>
     </div>
 
     <div class="km-pager" v-if="total > query.pageSize">
@@ -169,7 +172,7 @@ onMounted(async () => {
 .live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
 .live-card { display: block; border-radius: 12px; overflow: hidden; border: 1px solid var(--km-border); background: var(--km-card); transition: border-color .18s, background .18s; }
 .live-card:hover { border-color: var(--km-border-strong); background: var(--km-card-2); }
-.live-cover-wrap { position: relative; aspect-ratio: 16/10; background: #1a1326; overflow: hidden; }
+.live-cover-wrap { position: relative; aspect-ratio: 16/10; background: #f4eef8; overflow: hidden; }
 .cover { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
 .live-card:hover .cover { transform: scale(1.025); }
 .live-badge { position: absolute; top: 9px; left: 9px; z-index: 2; }
@@ -180,9 +183,12 @@ onMounted(async () => {
 .title { font-size: 13px; font-weight: 600; color: var(--km-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .live-meta { display: flex; align-items: center; gap: 6px; margin-top: 7px; color: var(--km-text-faint); font-size: 11px; }
 .live-meta-dot { width: 2px; height: 2px; border-radius: 50%; background: var(--km-text-faint); }
-.square-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 300px; color: var(--km-text-faint); }
-.empty-ring { width: 54px; height: 54px; border-radius: 50%; border: 1px solid var(--km-border-strong); box-shadow: 0 0 0 12px rgba(255, 255, 255, .015); }
+.square-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 360px; color: var(--km-text-faint); border: 1px solid var(--km-border); border-radius: 16px; background: #fff; }
+.empty-ring { width: 54px; height: 54px; border-radius: 50%; border: 1px solid #dfd2ec; background: radial-gradient(circle, #f5ecff 0 56%, transparent 57%); }
 .square-empty p { margin: 0; font-size: 12px; }
+.empty-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.empty-refresh { height: 34px; padding: 0 14px; border: 1px solid #e3d8ee; border-radius: 9px; background: #fff; color: var(--km-brand-violet-dark); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.empty-refresh:hover { background: #faf6fe; }
 @media (max-width: 720px) {
   .live-square { padding: 16px 16px 32px; }
   .square-title { font-size: 22px; }

@@ -1,15 +1,23 @@
 import { copyText } from '@/utils/clipboard'
+import { getApiOrigin } from '@/utils/server'
 
 /**
  * 统一分享：支持系统分享面板时直接唤起，否则复制链接并提示。
  */
 const SHARE_ORIGIN = 'http://192.168.20.103:5173'
 
+function shareBase() {
+  const pageOrigin = typeof location !== 'undefined' && location.origin && !/^file:/.test(location.origin)
+    ? location.origin
+    : ''
+  // WebView 内页面源是 http://127.0.0.1:8099，分享出去别人打不开，改用 API 所在站点。
+  if (pageOrigin && !/\/\/(127\.0\.0\.1|localhost)(:|\/|$)/i.test(pageOrigin)) return pageOrigin
+  return getApiOrigin() || pageOrigin || SHARE_ORIGIN
+}
+
 function shareUrl(path) {
   if (/^https?:\/\//i.test(path)) return path
-  const base = typeof location !== 'undefined' && location.origin && !/^file:/.test(location.origin)
-    ? location.origin
-    : SHARE_ORIGIN
+  const base = shareBase()
   return base + (path.charAt(0) === '/' ? path : '/' + path)
 }
 

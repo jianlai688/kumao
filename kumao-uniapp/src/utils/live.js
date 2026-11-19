@@ -1,9 +1,10 @@
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+import { getApiBase } from '@/utils/server'
 
 function apiUrlObject() {
-  if (!/^https?:\/\//i.test(API_BASE)) return null
+  const base = getApiBase()
+  if (!/^https?:\/\//i.test(base)) return null
   try {
-    return new URL(API_BASE)
+    return new URL(base)
   } catch (e) {
     return null
   }

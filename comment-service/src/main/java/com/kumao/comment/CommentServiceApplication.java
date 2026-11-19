@@ -5,8 +5,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableRabbit
+@EnableScheduling
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.kumao.api.client")
 @SpringBootApplication(scanBasePackages = {"com.kumao.comment", "com.kumao.common"})

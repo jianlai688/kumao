@@ -20,5 +20,7 @@ public class WorkRequest {
     private String language;
     private String style;
     private Boolean vipOnly;
+    /** 单曲价格（分），0 表示免费 */
+    private Integer price;
     private LocalDate releaseDate;
 }

@@ -106,7 +106,8 @@
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import KmNavBar from '@/components/km-nav-bar.vue'
-import { api, API_BASE_URL } from '@/api'
+import { api } from '@/api'
+import { getApiBase } from '@/utils/server'
 import { avatarOf } from '@/utils/media'
 
 const user = ref(uni.getStorageSync('km_user') || {})
@@ -173,7 +174,7 @@ function pickAvatar() {
         const token = uni.getStorageSync('km_token')
         const res = await new Promise((resolve, reject) => {
           uni.uploadFile({
-            url: `${API_BASE_URL}/file/upload?bizType=avatar`,
+            url: `${getApiBase()}/file/upload?bizType=avatar`,
             filePath: path,
             name: 'file',
             header: { Authorization: `Bearer ${token}` },
@@ -239,7 +240,7 @@ onLoad(load)
 <style scoped>
 .profile { padding-bottom: calc(var(--window-bottom, 0px) + 160rpx); }
 .ibtn { padding: 0 22rpx; height: 56rpx; border-radius: 999rpx; background: rgba(255,255,255,.06); display: flex; align-items: center; }
-.ibtn-t { font-size: 22rpx; color: #f5b45b; font-weight: 700; }
+.ibtn-t { font-size: 22rpx; color: var(--km-accent); font-weight: 700; }
 
 .hero { display: flex; align-items: center; gap: 22rpx; padding: 26rpx 26rpx 20rpx; }
 .ava-wrap { position: relative; width: 132rpx; height: 132rpx; border-radius: 50%; overflow: hidden; flex: none; }
@@ -278,3 +279,4 @@ onLoad(load)
   background: linear-gradient(135deg,#fbd08a,#de823c); color: #22150a; font-weight: 800; font-size: 25rpx;
 }
 </style>
+

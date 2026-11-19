@@ -117,7 +117,9 @@
             <span class="eyebrow">AUDIENCE MIX</span>
             <h2>观众画像</h2>
           </div>
-          <span class="card-caption">本场互动观众</span>
+          <span class="card-caption">
+            {{ report.audience?.sampleCount ? `实时在线样本 ${report.audience.sampleCount}` : '本场互动观众' }}
+          </span>
         </div>
         <div class="audience-grid">
           <div v-for="group in audienceGroups" :key="group.label" class="audience-group">

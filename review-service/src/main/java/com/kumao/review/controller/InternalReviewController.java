@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 供 comment-service / live-service 内部调用的内容审核接口。
- * 不经过网关管理端鉴权，只作为服务间调用入口。
+ * 供 comment-service / live-service 在用户提交内容时同步调用的内容审核接口。
+ * 返回 PASS 时业务侧自动通过；REVIEW / REJECT 由业务侧保存为待管理员复核。
  */
 @RestController
 @RequestMapping("/internal/ai")

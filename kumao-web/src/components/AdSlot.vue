@@ -20,6 +20,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { adApi, vipApi } from '@/api'
 import AdModal from '@/components/AdModal.vue'
+import { adSlotLabel } from '@/constants/adSlot'
 
 const props = defineProps({
   slot: { type: String, default: 'HOME_BANNER' },
@@ -33,8 +34,7 @@ const modalOpen = ref(false)
 
 const slotName = computed(() => {
   if (props.slotLabel) return props.slotLabel
-  const map = { SPLASH: '开屏', HOME_BANNER: '首页 Banner', LIVE: '直播页', PLAYER: '播放页' }
-  return map[props.slot] || props.slot
+  return adSlotLabel(props.slot)
 })
 
 async function load() {
@@ -76,12 +76,13 @@ onMounted(load)
   padding: 12px 14px;
   border-radius: 14px;
   cursor: pointer;
-  background: linear-gradient(135deg, rgba(245, 180, 91, 0.12), rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(245, 180, 91, 0.22);
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  background: linear-gradient(135deg, #fffaf0, #fff);
+  border: 1px solid #f1dfbf;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 .ad-slot:hover {
-  border-color: rgba(245, 180, 91, 0.45);
+  border-color: #e3c48d;
+  box-shadow: 0 8px 22px rgba(112, 72, 20, .07);
   transform: translateY(-1px);
 }
 .ad-slot__media {
@@ -90,7 +91,7 @@ onMounted(load)
   border-radius: 10px;
   overflow: hidden;
   flex: none;
-  background: #17151b;
+  background: #f6efe4;
   display: grid;
   place-items: center;
 }
@@ -101,7 +102,7 @@ onMounted(load)
 }
 .ad-slot__ph {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.35);
+  color: #a98a61;
   letter-spacing: 2px;
 }
 .ad-slot__copy {
@@ -111,12 +112,12 @@ onMounted(load)
 .ad-slot__tag {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(245, 180, 91, 0.9);
+  color: #a66b1f;
 }
 .ad-slot__name {
   display: block;
   font-size: 14px;
-  color: #f6f2ea;
+  color: #2b2334;
   margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -125,7 +126,7 @@ onMounted(load)
 .ad-slot__desc {
   margin: 3px 0 0;
   font-size: 12px;
-  color: rgba(246, 242, 234, 0.42);
+  color: #776d83;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -92,15 +92,25 @@ function ago(t) {
   return `${d.getMonth() + 1} 月 ${d.getDate()} 日`
 }
 
+// 雪花 ID 超过 JS Number 安全整数范围（2^53-1），后端已按字符串下发，
+// 这里必须保持字符串原样提交，任何 Number()/parseInt() 转换都会丢精度导致「歌曲不存在」。
+function resolveSongId() {
+  const raw = props.songId
+  if (raw === undefined || raw === null) return ''
+  const id = String(raw).trim()
+  return /^\d+$/.test(id) ? id : ''
+}
+
 async function load(reset) {
-  if (!props.songId) return
+  const songId = resolveSongId()
+  if (!songId) return
   if (reset) {
     pageNum.value = 1
     hasMore.value = false
     list.value = []
   }
   loading.value = true
-  const res = await api.comments(props.songId, { pageNum: pageNum.value, pageSize }).catch(() => null)
+  const res = await api.comments(songId, { pageNum: pageNum.value, pageSize }).catch(() => null)
   const data = (res && res.data) || {}
   const records = data.records || (Array.isArray(data) ? data : [])
   list.value = reset ? records : list.value.concat(records)
@@ -129,22 +139,22 @@ function send() {
     return
   }
   sending.value = true
-  api.createComment({ songId: Number(props.songId), content })
-    .then((res) => {
-      const created = (res && res.data) || {}
-      list.value.unshift({
-        id: created.id || 'local-' + Date.now(),
-        nickname: created.nickname || '我',
-        avatar: created.avatar || '',
-        content,
-        createTime: created.createTime || new Date().toISOString(),
-        likeCount: 0
-      })
-      total.value += 1
-      hasMore.value = list.value.length < total.value
+  const songId = resolveSongId()
+  if (!songId) {
+    sending.value = false
+    uni.showToast({ title: '歌曲信息还没加载好，请稍后再试', icon: 'none' })
+    return
+  }
+  api.createComment({ songId, content })
+    .then(async (res) => {
+      const message = String((res && res.message) || '')
       text.value = ''
-      uni.showToast({ title: '评论成功', icon: 'none' })
-      emit('count', total.value)
+      if (message.includes('复核')) {
+        uni.showToast({ title: '已提交管理员复核，通过后展示', icon: 'none' })
+        return
+      }
+      await load(true)
+      uni.showToast({ title: message || '评论已发布', icon: 'none' })
     })
     .catch(() => {})
     .finally(() => { sending.value = false })
@@ -204,7 +214,7 @@ watch(
 .reply { font-size: 18rpx; color: rgba(245, 180, 91, .7); }
 .like { margin-left: auto; display: flex; align-items: center; gap: 6rpx; }
 .lc { font-size: 17rpx; color: rgba(247, 241, 232, .32); }
-.lc.on { color: #f5b45b; }
+.lc.on { color: var(--km-accent); }
 .tip { padding: 40rpx 0; text-align: center; font-size: 20rpx; color: rgba(247, 241, 232, .28); }
 .more { padding: 24rpx 0; text-align: center; font-size: 20rpx; color: rgba(245, 180, 91, .8); }
 .end { color: rgba(247, 241, 232, .18); }
@@ -226,5 +236,6 @@ watch(
 }
 .send.off { opacity: .45; }
 </style>
+
 
 

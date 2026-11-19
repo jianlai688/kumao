@@ -55,6 +55,14 @@ public class AuthController {
         return R.ok(authService.kickOthers(UserContext.requireUserId(), device));
     }
 
+    /** 注销账号（需登录）：清除登录态并脱敏后逻辑删除 */
+    @PostMapping("/cancel")
+    public R<Void> cancel(HttpServletRequest request) {
+        String token = JwtUtils.resolveToken(request.getHeader(CommonConstants.TOKEN_HEADER));
+        authService.cancelAccount(UserContext.requireUserId(), token);
+        return R.ok();
+    }
+
     @PostMapping("/password/reset")
     public R<Void> resetPassword(@RequestBody @Valid PasswordResetRequest req) {
         authService.resetPassword(req.getPhone(), req.getSmsCode(), req.getNewPassword());

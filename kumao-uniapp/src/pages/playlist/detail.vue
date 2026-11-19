@@ -18,6 +18,9 @@
           <text class="pa-ico">▶</text>
           <text>播放全部</text>
         </view>
+        <view v-if="isOwner" class="publish-btn" @click="togglePublish">
+          {{ playlist.isPublic ? '取消公开' : '发布到歌单广场' }}
+        </view>
       </view>
     </view>
 
@@ -42,11 +45,25 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { api } from '@/api'
 
 const playlist = ref(null)
+const me = ref(uni.getStorageSync('km_user') || {})
+const isOwner = computed(() => me.value.userId && playlist.value && String(playlist.value.userId) === String(me.value.userId))
+
+async function togglePublish() {
+  if (!playlist.value) return
+  const next = !playlist.value.isPublic
+  try {
+    await api.publishPlaylist(playlist.value.id, next)
+    playlist.value.isPublic = next ? 1 : 0
+    uni.showToast({ title: next ? '已发布到歌单广场' : '已设为私密', icon: 'none' })
+  } catch (e) {
+    /* 错误提示由请求层统一处理 */
+  }
+}
 
 function play(s) {
   uni.setStorageSync('km_current_song', {
@@ -103,7 +120,7 @@ onLoad(async (options) => {
   border-radius: 6rpx;
   background: rgba(245, 180, 91, .14);
   border: 1rpx solid rgba(245, 180, 91, .3);
-  color: #f5b45b;
+  color: var(--km-accent);
   font-weight: 700;
 }
 .name { font-size: 36rpx; font-weight: 900; letter-spacing: -1rpx; line-height: 1.25; }
@@ -118,7 +135,8 @@ onLoad(async (options) => {
   overflow: hidden;
 }
 
-.hero-actions { position: relative; margin-top: 24rpx; }
+.hero-actions { position: relative; margin-top: 24rpx; display: flex; align-items: center; gap: 16rpx; }
+.publish-btn { padding: 14rpx 22rpx; border-radius: 999rpx; border: 1rpx solid rgba(245,180,91,.5); color: var(--km-accent); font-size: 20rpx; }
 .play-all {
   display: inline-flex;
   align-items: center;
@@ -126,7 +144,7 @@ onLoad(async (options) => {
   height: 68rpx;
   padding: 0 34rpx;
   border-radius: 999rpx;
-  background: #f5b45b;
+  background: var(--km-accent);
   color: #07080a;
   font-size: 25rpx;
   font-weight: 800;
@@ -148,4 +166,5 @@ onLoad(async (options) => {
 .empty { display: flex; flex-direction: column; align-items: center; gap: 14rpx; padding: 80rpx 0; color: rgba(243, 244, 246, .3); font-size: 23rpx; }
 .e-ico { font-size: 50rpx; opacity: .5; }
 </style>
+
 

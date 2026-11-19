@@ -36,6 +36,12 @@ const routes = [
     ]
   },
   {
+    path: '/studio/live/:id/broadcast',
+    name: 'liveBroadcast',
+    component: () => import('@/views/studio/LiveBroadcast.vue'),
+    meta: { title: '直播画面' }
+  },
+  {
     path: '/studio',
     component: () => import('@/views/studio/StudioLayout.vue'),
     meta: { auth: true },
@@ -65,6 +71,7 @@ const routes = [
       { path: 'singers', name: 'adminSingers', component: () => import('@/views/admin/Singers.vue'), meta: { title: '歌手管理' } },
       { path: 'mvs', name: 'adminMvs', component: () => import('@/views/admin/Mvs.vue'), meta: { title: 'MV 管理' } },
       { path: 'banners', name: 'adminBanners', component: () => import('@/views/admin/Banners.vue'), meta: { title: '轮播管理' } },
+      { path: 'home-settings', name: 'adminHomeSettings', component: () => import('@/views/admin/HomeSettings.vue'), meta: { title: '首页设置' } },
       { path: 'playlists', name: 'adminPlaylists', component: () => import('@/views/admin/Playlists.vue'), meta: { title: '歌单管理' } },
       { path: 'comments', name: 'adminComments', component: () => import('@/views/admin/Comments.vue'), meta: { title: '评论管理' } },
       { path: 'lives', name: 'adminLives', component: () => import('@/views/admin/Lives.vue'), meta: { title: '直播管理' } },

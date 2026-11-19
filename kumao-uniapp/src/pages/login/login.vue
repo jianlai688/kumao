@@ -99,6 +99,7 @@ async function oneClick() {
   box-sizing: border-box;
 }
 .glow {
+  pointer-events: none;
   position: absolute;
   width: 700rpx;
   height: 700rpx;
@@ -108,7 +109,8 @@ async function oneClick() {
   background: radial-gradient(circle, rgba(245, 180, 91, .2), transparent 62%);
   filter: blur(40rpx);
 }
-.rings { position: absolute; right: -140rpx; top: 120rpx; }
+.rings {
+  pointer-events: none; position: absolute; right: -140rpx; top: 120rpx; }
 .r { position: absolute; border-radius: 50%; border: 1rpx solid rgba(245, 180, 91, .12); }
 .r1 { width: 520rpx; height: 520rpx; left: -260rpx; top: -260rpx; }
 .r2 { width: 360rpx; height: 360rpx; left: -180rpx; top: -180rpx; border-color: rgba(245, 180, 91, .18); }
@@ -120,13 +122,13 @@ async function oneClick() {
   font-size: 50rpx;
   font-weight: 900;
   letter-spacing: -1.6rpx;
-  background: linear-gradient(96deg, #f3f4f6, #f5b45b);
+  background: linear-gradient(96deg, #f3f4f6, var(--km-accent));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .sub { font-size: 26rpx; color: rgba(243, 244, 246, .45); letter-spacing: 1rpx; }
-.hl { color: #f5b45b; }
+.hl { color: var(--km-accent); }
 
 .form { position: relative; width: 100%; margin-top: 80rpx; display: flex; flex-direction: column; gap: 22rpx; }
 .field {
@@ -149,7 +151,7 @@ async function oneClick() {
   line-height: 94rpx;
   margin-top: 12rpx;
   border-radius: 26rpx;
-  background: #f5b45b;
+  background: var(--km-accent);
   color: #07080a;
   font-size: 30rpx;
   font-weight: 800;
@@ -188,7 +190,9 @@ async function oneClick() {
 
 .register-row { display: flex; justify-content: center; gap: 6rpx; margin-top: 6rpx; }
 .rr-t { font-size: 22rpx; color: rgba(247,241,232,.35); }
-.rr-l { font-size: 22rpx; color: #f5b45b; }
+.rr-l { font-size: 22rpx; color: var(--km-accent); }
 </style>
+
+
 
 

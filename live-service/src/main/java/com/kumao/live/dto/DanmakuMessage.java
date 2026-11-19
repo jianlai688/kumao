@@ -24,6 +24,15 @@ public class DanmakuMessage implements Serializable {
     private String roomStatus;
     private String pullUrl;
     private Long timestamp;
+    /** NOW_PLAYING：主播控制台实时同步的当前歌曲信息 */
+    private Long songId;
+    private String songName;
+    private String singerName;
+    private String coverUrl;
+    private Integer duration;
+    private Integer progress;
+    private Integer queueIndex;
+    private Integer queueLength;
 
     public static DanmakuMessage system(Long roomId, String content) {
         DanmakuMessage msg = new DanmakuMessage();

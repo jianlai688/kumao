@@ -43,11 +43,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * AI 自动审核调度器。
  *
- * <p>定时通过网关读取各业务待审队列，调用审核模型生成建议：
- * AI 返回 PASS、风险低于阈值且分类允许时自动落业务审核状态；
- * 其余情况写入 {@code ai_review_task}，由管理员在工作台复核。</p>
+ * <p>定时通过网关读取资质、广告、歌曲/MV、歌手等业务待审队列，调用审核模型生成建议：
+ * AI 返回 PASS、风险低于阈值且分类允许时自动落业务审核状态；其余情况写入
+ * {@code ai_review_task}，由管理员在工作台复核。</p>
  *
- * <p>账号类、直播类、投放类等高风险分类默认只生成建议，不自动通过。</p>
+ * <p>评论与直播弹幕在用户提交时由业务服务同步审核，PASS 直接发布，
+ * REVIEW / REJECT 保留为待管理员复核，不进入本定时任务。</p>
  */
 @Slf4j
 @Service
@@ -76,10 +77,6 @@ public class AutoReviewService {
             new CategorySpec("MV", "/api/music/mv/admin/page",
                     Map.of("auditStatus", "PENDING"), HttpMethod.POST,
                     "/api/music/mv/admin/{id}/audit", true),
-            new CategorySpec("COMMENT", "/api/comment/comments/admin/page",
-                    Map.of("status", "0"), null, null, false),
-            new CategorySpec("DANMAKU", "/api/live/live/danmaku/admin/page",
-                    Map.of(), null, null, false),
             new CategorySpec("SINGER", "/api/music/singers/admin/page",
                     Map.of("status", "0"), HttpMethod.POST,
                     "/api/music/singers/admin/{id}/audit", true)
@@ -145,7 +142,7 @@ public class AutoReviewService {
         return PageResult.of(page);
     }
 
-    /** 管理员确认后把任务标记为已处理，避免同一评论/弹幕被反复自动分析。 */
+    /** 管理员确认后把任务标记为已处理，避免同一待审项目被反复自动分析。 */
     public int resolve(String category, String itemId) {
         AiReviewTask task = find(category, itemId);
         if (task == null) return 0;
@@ -207,6 +204,7 @@ public class AutoReviewService {
                         AiReviewRequest reviewRequest = toRequest(spec, raw);
                         AiReviewResult ai = aiReviewService.review(reviewRequest);
                         boolean autoApprove = isAutoApprove(spec.type)
+                                && (!isIdentityCategory(spec.type) || identityComplete(raw))
                                 && "AI_MODEL".equals(ai.getSource())
                                 && "PASS".equals(ai.getDecision())
                                 && ai.getRiskScore() < properties.getPassRiskThreshold();
@@ -320,18 +318,21 @@ public class AutoReviewService {
                 metadata.put("userId", raw.get("userId"));
                 metadata.put("liveCategory", raw.get("liveCategory"));
                 metadata.put("status", raw.get("status"));
+                putIdentityFlags(metadata, raw);
             }
             case "MUSICIAN" -> {
                 title = firstText(raw.get("stageName"), firstText(raw.get("realName"), "音乐人"));
                 content = firstText(raw.get("intro"), firstText(raw.get("representative"), ""));
                 metadata.put("style", raw.get("style"));
                 metadata.put("status", raw.get("status"));
+                putIdentityFlags(metadata, raw);
             }
             case "ADVERTISER" -> {
                 title = firstText(raw.get("companyName"), "广告制作人");
                 content = firstText(raw.get("intro"), firstText(raw.get("representative"), ""));
                 metadata.put("adType", raw.get("adType"));
                 metadata.put("status", raw.get("status"));
+                putIdentityFlags(metadata, raw);
             }
             case "AD_MATERIAL" -> {
                 title = firstText(raw.get("name"), "广告素材");
@@ -362,19 +363,6 @@ public class AutoReviewService {
                 metadata.put("mediaUrl", raw.get("videoUrl"));
                 metadata.put("coverUrl", raw.get("coverUrl"));
                 metadata.put("auditStatus", raw.get("auditStatus"));
-            }
-            case "COMMENT" -> {
-                title = firstText(raw.get("nickname"), "评论");
-                content = firstText(raw.get("content"), "");
-                metadata.put("songId", raw.get("songId"));
-                metadata.put("parentId", raw.get("parentId"));
-                metadata.put("status", raw.get("status"));
-            }
-            case "DANMAKU" -> {
-                title = firstText(raw.get("nickname"), "弹幕");
-                content = firstText(raw.get("content"), "");
-                metadata.put("roomId", raw.get("roomId"));
-                metadata.put("type", raw.get("type"));
             }
             case "SINGER" -> {
                 title = firstText(raw.get("name"), "歌手认证");
@@ -418,6 +406,22 @@ public class AutoReviewService {
         } else {
             taskMapper.updateById(task);
         }
+    }
+
+    private void putIdentityFlags(Map<String, Object> metadata, Map<String, Object> raw) {
+        metadata.put("hasIdCardNo", StringUtils.hasText(text(raw.get("idCard"))));
+        metadata.put("hasIdCardFront", StringUtils.hasText(text(raw.get("idCardFrontUrl"))));
+        metadata.put("hasIdCardBack", StringUtils.hasText(text(raw.get("idCardBackUrl"))));
+    }
+
+    private boolean isIdentityCategory(String category) {
+        return "ANCHOR_APPLY".equals(category) || "MUSICIAN".equals(category) || "ADVERTISER".equals(category);
+    }
+
+    private boolean identityComplete(Map<String, Object> raw) {
+        return StringUtils.hasText(text(raw.get("idCard")))
+                && StringUtils.hasText(text(raw.get("idCardFrontUrl")))
+                && StringUtils.hasText(text(raw.get("idCardBackUrl")));
     }
 
     private AiReviewTask find(String category, String itemId) {

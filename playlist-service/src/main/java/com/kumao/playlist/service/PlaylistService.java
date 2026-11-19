@@ -94,7 +94,7 @@ public class PlaylistService {
         playlist.setName(req.getName());
         playlist.setCoverUrl(req.getCoverUrl());
         playlist.setDescription(req.getDescription());
-        playlist.setIsPublic(req.getIsPublic() == null ? 1 : req.getIsPublic());
+        playlist.setIsPublic(resolvePublic(req, 1));
         playlist.setUserId(userId);
         playlist.setCreatorName(creatorName);
         playlist.setSongCount(0);
@@ -110,10 +110,30 @@ public class PlaylistService {
         playlist.setName(req.getName());
         playlist.setCoverUrl(req.getCoverUrl());
         playlist.setDescription(req.getDescription());
-        if (req.getIsPublic() != null) {
-            playlist.setIsPublic(req.getIsPublic());
+        if (req.getIsPublic() != null || req.getPublicFlag() != null) {
+            playlist.setIsPublic(resolvePublic(req, playlist.getIsPublic() == null ? 1 : playlist.getIsPublic()));
         }
         playlistMapper.updateById(playlist);
+    }
+
+    /**
+     * 发布 / 取消发布到歌单广场。用户自己的歌单直接生效，无需审核。
+     */
+    public void publish(Long id, Long userId, boolean makePublic) {
+        Playlist playlist = requireOwned(id, userId);
+        playlist.setIsPublic(makePublic ? 1 : 0);
+        playlist.setStatus(1);
+        playlistMapper.updateById(playlist);
+    }
+
+    private Integer resolvePublic(PlaylistRequest req, int fallback) {
+        if (req.getPublicFlag() != null) {
+            return req.getPublicFlag() == 1 ? 1 : 0;
+        }
+        if (req.getIsPublic() != null) {
+            return req.getIsPublic() == 1 ? 1 : 0;
+        }
+        return fallback;
     }
 
     @Transactional(rollbackFor = Exception.class)

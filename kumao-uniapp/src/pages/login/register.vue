@@ -209,6 +209,7 @@ function goLogin() {
   position: relative; overflow: hidden;
 }
 .glow {
+  pointer-events: none;
   position: absolute; top: -180rpx; left: 50%; transform: translateX(-50%);
   width: 620rpx; height: 620rpx; border-radius: 50%;
   background: radial-gradient(circle, rgba(245,180,91,.26), transparent 68%);
@@ -254,9 +255,11 @@ function goLogin() {
 }
 .to-login { display: flex; justify-content: center; gap: 6rpx; margin-top: 6rpx; }
 .to-t { font-size: 22rpx; color: rgba(247,241,232,.35); }
-.to-l { font-size: 22rpx; color: #f5b45b; }
+.to-l { font-size: 22rpx; color: var(--km-accent); }
 .foot { margin-top: 40rpx; text-align: center; }
 .foot-t { font-size: 19rpx; color: rgba(247,241,232,.22); }
 </style>
+
+
 
 

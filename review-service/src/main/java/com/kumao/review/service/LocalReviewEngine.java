@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 可解释的本地规则兜底。
@@ -154,6 +155,11 @@ public class LocalReviewEngine {
             extra += 10;
             signals.add("主播申请资料描述为空");
         }
+        if (Set.of("ANCHOR_APPLY", "MUSICIAN", "ADVERTISER").contains(category)
+                && !identityComplete(request.getMetadata())) {
+            extra += 35;
+            signals.add("身份证号或正反面照片不完整");
+        }
         if (("MUSICIAN".equals(category) || "SINGER".equals(category))
                 && !StringUtils.hasText(request.getContent())) {
             extra += 8;
@@ -172,6 +178,17 @@ public class LocalReviewEngine {
         if (request.getContent() != null) sb.append(request.getContent()).append(' ');
         if (request.getMetadata() != null) sb.append(request.getMetadata());
         return sb.toString().trim();
+    }
+
+    private boolean identityComplete(Map<String, Object> metadata) {
+        if (metadata == null) return false;
+        return truthy(metadata.get("hasIdCardNo"))
+                && truthy(metadata.get("hasIdCardFront"))
+                && truthy(metadata.get("hasIdCardBack"));
+    }
+
+    private boolean truthy(Object value) {
+        return value != null && ("true".equalsIgnoreCase(String.valueOf(value)) || "1".equals(String.valueOf(value)));
     }
 
     /** 对发给外部模型的文本做轻量脱敏，避免把完整证件号、手机号直接送出。 */

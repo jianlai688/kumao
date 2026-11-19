@@ -15,7 +15,7 @@
           <div class="step"><span class="s-num">3</span><span>开播赚钱</span></div>
         </div>
       </div>
-      <div class="hero-emoji">🎙️</div>
+      <div class="hero-emoji" aria-hidden="true"><el-icon><Microphone /></el-icon></div>
     </div>
 
     <div class="layout">
@@ -32,8 +32,37 @@
             <el-input v-model="form.realName" placeholder="请输入真实姓名" size="large" />
           </div>
           <div class="f-item">
-            <label class="f-label">身份证号</label>
+            <label class="f-label">身份证号 <em>*</em></label>
             <el-input v-model="form.idCard" placeholder="请输入身份证号" size="large" />
+          </div>
+        </div>
+
+        <div class="f-grid">
+          <div class="f-item">
+            <label class="f-label">身份证人像面 <em>*</em></label>
+            <MediaDropzone
+              v-model="form.idCardFrontUrl"
+              kind="cover"
+              biz-type="id-card"
+              title="上传身份证人像面"
+              hint="请上传清晰、完整的身份证人像面，单张不超过 10MB"
+              done-title="身份证人像面已上传"
+              ready-text="身份证人像面已就绪"
+              :max-size-mb="10"
+            />
+          </div>
+          <div class="f-item">
+            <label class="f-label">身份证国徽面 <em>*</em></label>
+            <MediaDropzone
+              v-model="form.idCardBackUrl"
+              kind="cover"
+              biz-type="id-card"
+              title="上传身份证国徽面"
+              hint="请上传清晰、完整的身份证国徽面，单张不超过 10MB"
+              done-title="身份证国徽面已上传"
+              ready-text="身份证国徽面已就绪"
+              :max-size-mb="10"
+            />
           </div>
         </div>
 
@@ -126,7 +155,7 @@ import MediaDropzone from '@/components/studio/MediaDropzone.vue'
 
 const loading = ref(false)
 const applies = ref([])
-const form = reactive({ realName: '', idCard: '', liveCategory: '弹唱', intro: '', coverUrl: '' })
+const form = reactive({ realName: '', idCard: '', idCardFrontUrl: '', idCardBackUrl: '', liveCategory: '弹唱', intro: '', coverUrl: '' })
 
 const categories = [
   { value: '弹唱', icon: '🎸', desc: '吉他弹唱 · 沉浸现场' },
@@ -138,7 +167,9 @@ const statusText = (s) => ({ PENDING: '待审核', APPROVED: '已通过', REJECT
 const statusClass = (s) => ({ PENDING: 'warn', APPROVED: 'ok', REJECTED: 'bad' }[s] || 'muted')
 
 async function submit() {
-  if (!form.realName || !form.liveCategory) return ElMessage.warning('请填写完整信息')
+  if (!form.realName || !form.idCard || !form.idCardFrontUrl || !form.idCardBackUrl || !form.liveCategory) {
+    return ElMessage.warning('请填写真实姓名、身份证号并上传身份证正反面')
+  }
   loading.value = true
   try {
     await userApi.applyAnchor(form)

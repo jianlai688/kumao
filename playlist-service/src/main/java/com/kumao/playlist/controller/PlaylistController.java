@@ -62,6 +62,13 @@ public class PlaylistController {
         return R.ok();
     }
 
+    @PutMapping("/{id}/publish")
+    public R<Void> publish(@PathVariable Long id,
+                           @RequestParam(defaultValue = "true") boolean publicFlag) {
+        playlistService.publish(id, UserContext.requireUserId(), publicFlag);
+        return R.ok();
+    }
+
     @DeleteMapping("/{id}")
     public R<Void> delete(@PathVariable Long id) {
         playlistService.delete(id, UserContext.requireUserId());

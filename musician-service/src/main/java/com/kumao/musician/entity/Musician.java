@@ -17,6 +17,9 @@ public class Musician extends BaseEntity {
     /** 艺名 */
     private String stageName;
     private String realName;
+    private String idCard;
+    private String idCardFrontUrl;
+    private String idCardBackUrl;
     private String style;
     private String intro;
     private String avatar;

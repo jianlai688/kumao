@@ -165,6 +165,60 @@ public class UserService {
     // ---------------- 主播申请 ----------------
 
     @Transactional(rollbackFor = Exception.class)
+/**
+     * 主播修改个人信息（取最近一条已通过的主播入驻记录）
+     */
+    public void updateAnchorProfile(Long userId, com.kumao.user.dto.AnchorProfileRequest req) {
+        AnchorApply apply = anchorApplyMapper.selectOne(new LambdaQueryWrapper<AnchorApply>()
+                .eq(AnchorApply::getUserId, userId)
+                .eq(AnchorApply::getStatus, "APPROVED")
+                .orderByDesc(AnchorApply::getCreateTime)
+                .last("limit 1"));
+        if (apply == null) {
+            throw new BizException("尚未通过主播认证，无法修改主播信息");
+        }
+        if (req.getAnchorName() != null) {
+            apply.setAnchorName(req.getAnchorName().isBlank() ? null : req.getAnchorName().trim());
+        }
+        if (req.getAvatar() != null) {
+            apply.setAvatar(req.getAvatar());
+        }
+        if (req.getLiveCategory() != null) {
+            apply.setLiveCategory(req.getLiveCategory());
+        }
+        if (req.getIntro() != null) {
+            apply.setIntro(req.getIntro());
+        }
+        if (req.getCoverUrl() != null) {
+            apply.setCoverUrl(req.getCoverUrl());
+        }
+        if (req.getPayType() != null) {
+            String payType = req.getPayType().trim().toUpperCase();
+            if (!"ALIPAY".equals(payType) && !"WECHAT".equals(payType)) {
+                throw new BizException("收款方式仅支持支付宝或微信");
+            }
+            apply.setPayType(payType);
+        }
+        if (req.getPayAccount() != null) {
+            String payAccount = req.getPayAccount().trim();
+            if (payAccount.length() > 100) {
+                throw new BizException("收款账号不能超过 100 个字符");
+            }
+            apply.setPayAccount(payAccount.isEmpty() ? null : payAccount);
+        }
+        if (req.getPayName() != null) {
+            String payName = req.getPayName().trim();
+            if (payName.length() > 32) {
+                throw new BizException("收款人姓名不能超过 32 个字符");
+            }
+            apply.setPayName(payName.isEmpty() ? null : payName);
+        }
+        if (StringUtils.hasText(apply.getPayType()) && !StringUtils.hasText(apply.getPayAccount())) {
+            throw new BizException("请填写收款账号");
+        }
+        anchorApplyMapper.updateById(apply);
+    }
+
     public Long submitAnchorApply(Long userId, AnchorApplyRequest req) {
         Long pending = anchorApplyMapper.selectCount(new LambdaQueryWrapper<AnchorApply>()
                 .eq(AnchorApply::getUserId, userId).eq(AnchorApply::getStatus, "PENDING"));
@@ -179,6 +233,8 @@ public class UserService {
         apply.setUserId(userId);
         apply.setRealName(req.getRealName());
         apply.setIdCard(req.getIdCard());
+        apply.setIdCardFrontUrl(req.getIdCardFrontUrl());
+        apply.setIdCardBackUrl(req.getIdCardBackUrl());
         apply.setLiveCategory(req.getLiveCategory());
         apply.setIntro(req.getIntro());
         apply.setCoverUrl(req.getCoverUrl());
@@ -209,6 +265,11 @@ public class UserService {
         if (!"PENDING".equals(apply.getStatus())) {
             throw new BizException("该申请已处理");
         }
+        if (approved && (!StringUtils.hasText(apply.getIdCard())
+                || !StringUtils.hasText(apply.getIdCardFrontUrl())
+                || !StringUtils.hasText(apply.getIdCardBackUrl()))) {
+            throw new BizException("请先核验身份证号及正反面照片，再通过审核");
+        }
         apply.setStatus(approved ? "APPROVED" : "REJECTED");
         apply.setRejectReason(approved ? null : reason);
         apply.setAuditBy(adminId);
@@ -231,4 +292,5 @@ public class UserService {
                         new LambdaQueryWrapper<UserLoginLog>().ge(UserLoginLog::getCreateTime, LocalDateTime.now().toLocalDate().atStartOfDay())));
     }
 }
+
 

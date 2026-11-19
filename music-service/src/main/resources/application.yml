@@ -36,6 +36,9 @@ kumao:
     secret: ${JWT_SECRET:kumao-music-platform-jwt-secret-key-2026-please-change}
   rank:
     cache-seconds: 300
+  music:
+    # 本地/容器内读取 /static 歌词、封面时的网关基础地址
+    static-base-url: ${STATIC_BASE_URL:http://127.0.0.1:8080}
 management:
   endpoints:
     web:

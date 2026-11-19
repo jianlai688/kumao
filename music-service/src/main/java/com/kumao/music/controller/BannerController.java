@@ -20,7 +20,17 @@ public class BannerController {
     @GetMapping
     public R<List<Banner>> list() {
         return R.ok(bannerMapper.selectList(new LambdaQueryWrapper<Banner>()
-                .eq(Banner::getStatus, 1).orderByAsc(Banner::getSort)));
+                .eq(Banner::getStatus, 1).orderByAsc(Banner::getSort).orderByAsc(Banner::getId)));
+    }
+
+    /**
+     * 管理端列表：包含停用轮播，便于后台重新启用。
+     */
+    @GetMapping("/admin")
+    public R<List<Banner>> adminList() {
+        UserContext.requireAdmin();
+        return R.ok(bannerMapper.selectList(new LambdaQueryWrapper<Banner>()
+                .orderByAsc(Banner::getSort).orderByAsc(Banner::getId)));
     }
 
     @PostMapping("/admin")

@@ -77,18 +77,6 @@
           <p class="oauth-tip">演示环境将自动创建或登录对应的第三方账号</p>
         </div>
 
-        <div class="device-row">
-          <span class="d-label">登录设备</span>
-          <div class="d-options">
-            <button
-              v-for="d in devices"
-              :key="d.value"
-              :class="['d-option', { active: device === d.value }]"
-              @click="device = d.value"
-            >{{ d.label }}</button>
-          </div>
-        </div>
-
         <button class="submit-btn" :disabled="loading" @click="submit">
           <span v-if="!loading">登 录</span>
           <span v-else class="loading-dot">登录中…</span>
@@ -98,6 +86,20 @@
           <span>还没有账号？<router-link to="/register" class="link">立即注册</router-link></span>
           <router-link to="/" class="link dim">先逛逛 →</router-link>
         </div>
+
+        <button class="app-download" type="button" @click="downloadOpen = true">
+          <span class="app-download-ico">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="2.5" width="12" height="19" rx="2.6" />
+              <path d="M10.5 18.5h3" />
+            </svg>
+          </span>
+          <span class="app-download-copy">
+            <b>手机 App 下载</b>
+            <i>扫码安装安卓客户端</i>
+          </span>
+          <span class="app-download-cta">二维码 →</span>
+        </button>
 
         <div class="demo-box">
           <div class="demo-head">
@@ -113,6 +115,8 @@
         </div>
       </div>
     </div>
+
+    <AppDownload v-model="downloadOpen" />
   </div>
 </template>
 
@@ -122,21 +126,16 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authApi } from '@/api'
 import { useUserStore } from '@/stores/user'
+import AppDownload from '@/components/AppDownload.vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
 const tab = ref('password')
-const device = ref('PC')
+const downloadOpen = ref(false)
 const loading = ref(false)
 const countdown = ref(0)
-
-const devices = [
-  { value: 'PC', label: 'PC Web' },
-  { value: 'APP', label: 'APP' },
-  { value: 'DESKTOP', label: '桌面端' }
-]
 
 const form = reactive({ username: '', password: '', phone: '', smsCode: '' })
 
@@ -177,7 +176,7 @@ async function oauth(thirdType) {
   try {
     const res = await authApi.login({
       type: 'OAUTH',
-      device: device.value,
+      device: 'PC',
       thirdType,
       thirdOpenId: 'demo-' + thirdType.toLowerCase()
     })
@@ -200,7 +199,7 @@ async function submit() {
   try {
     const payload = {
       type: tab.value === 'sms' ? 'SMS' : 'PASSWORD',
-      device: device.value,
+      device: 'PC',
       username: form.username,
       password: form.password,
       phone: form.phone,
@@ -209,7 +208,7 @@ async function submit() {
     const data = await userStore.login(payload)
     ElMessage.success('登录成功，欢迎回来 ' + (data.nickname || data.username))
     const admin = (data.roles || '').split(',').includes('ADMIN')
-    router.replace(route.query.redirect || (admin && device.value === 'PC' && form.username === 'admin' ? '/admin' : '/'))
+    router.replace(route.query.redirect || (admin && form.username === 'admin' ? '/admin' : '/'))
   } catch (e) {
     /* handled */
   } finally {
@@ -376,24 +375,6 @@ async function submit() {
 .oauth-arrow { margin-left: auto; color: var(--km-text-faint); }
 .oauth-tip { text-align: center; color: var(--km-text-faint); font-size: 12px; margin: 10px 0 0; }
 
-/* 设备 */
-.device-row { display: flex; align-items: center; gap: 14px; margin: 20px 0 6px; }
-.d-label { font-size: 12px; color: var(--km-text-dim); }
-.d-options { display: flex; gap: 6px; }
-.d-option {
-  height: 30px;
-  padding: 0 13px;
-  border-radius: 999px;
-  border: 1px solid var(--km-border);
-  background: transparent;
-  color: var(--km-text-dim);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all .18s;
-}
-.d-option:hover { color: var(--km-text); border-color: var(--km-border-strong); }
-.d-option.active { background: rgba(192, 132, 252, .14); border-color: var(--km-accent-line); color: var(--km-accent); font-weight: 700; }
-
 /* 提交 */
 .submit-btn {
   width: 100%;
@@ -451,9 +432,127 @@ async function submit() {
 .demo-chip b { font-size: 12px; color: var(--km-text); font-weight: 600; }
 .demo-chip span { font-size: 11px; color: var(--km-text-faint); }
 
+/* 浅色品牌登录页 */
+.login-page { background: var(--km-bg); }
+.brand-side {
+  background:
+    radial-gradient(920px 620px at 12% 16%, rgba(235, 180, 255, .24), transparent 58%),
+    linear-gradient(145deg, #2c0d5c 0%, #58177f 50%, #8b1e89 100%);
+  border-right: 0;
+  padding: 48px 56px;
+}
+.brand-glow { background: radial-gradient(circle at 54% 48%, transparent 32%, rgba(16, 4, 31, .26)); }
+.logo-mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff4fe;
+  border: 1px solid rgba(255, 255, 255, .4);
+  color: #bd3ecf;
+  font-size: 21px;
+  font-weight: 700;
+  filter: none;
+}
+.logo-name { background: none; color: #fff; -webkit-text-fill-color: #fff; }
+.brand-copy h1 { color: #fff; }
+.hl { background: none; color: #f2c8ff; -webkit-text-fill-color: #f2c8ff; }
+.brand-copy p { color: rgba(255, 255, 255, .68); }
+.stat b { color: #fff; }
+.stat span { color: rgba(255, 255, 255, .58); }
+.d { border-color: rgba(255, 255, 255, .12); }
+
+.form-side { background: var(--km-bg); }
+.login-box {
+  max-width: 438px;
+  padding: 34px 36px 28px;
+  border: 1px solid #ece7f2;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 20px 52px rgba(61, 36, 92, .08);
+}
+.box-head h2 { color: var(--km-text); font-size: 25px; font-weight: 700; letter-spacing: -.04em; }
+.box-head p { color: var(--km-text-faint); }
+.seg {
+  background: #f7f3fb;
+  border-color: #eee8f4;
+  border-radius: 10px;
+  margin-bottom: 22px;
+}
+.seg-btn { height: 34px; border-radius: 7px; color: var(--km-text-dim); font-size: 12.5px; font-weight: 500; }
+.seg-btn.active {
+  background: #f3eaff;
+  border: 1px solid #e1cdf4;
+  color: var(--km-brand-violet-dark);
+  font-weight: 600;
+  box-shadow: none;
+}
+.f-label { color: #4f4759; font-size: 12.5px; }
+.form-body :deep(.el-input__wrapper) { height: 44px; margin-bottom: 16px; border-radius: 9px !important; }
+.sms-btn {
+  height: 44px;
+  border-radius: 9px;
+  border-color: #e1cdf4;
+  background: #f8f1ff;
+  color: var(--km-brand-violet-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sms-btn:hover:not(:disabled) { background: #f0e1ff; color: var(--km-brand-violet-dark); }
+.oauth-item { border-color: #eee8f4; background: #fbf9fd; color: var(--km-text); }
+.oauth-item:hover { border-color: #ddcbea; background: #f8f3fd; }
+.submit-btn {
+  height: 46px;
+  margin-top: 18px;
+  border-radius: 10px;
+  background: var(--km-grad);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  box-shadow: 0 8px 20px rgba(153, 45, 190, .18);
+}
+.submit-btn:hover:not(:disabled) { background: var(--km-grad); filter: brightness(1.05); box-shadow: 0 12px 28px rgba(153, 45, 190, .24); }
+.bottom-row { color: var(--km-text-dim); font-size: 12px; }
+.link { color: var(--km-brand-violet); }
+.demo-box { border-top: 1px solid #f0ebf5; }
+.demo-chip { border-color: #eee8f4; background: #fbf9fd; }
+.demo-chip:hover { border-color: #dfc8f4; background: #f8f1ff; }
+.demo-chip b { color: var(--km-text); }
+.demo-chip span { color: var(--km-text-faint); }
+
+/* 手机 App 下载入口 */
+.app-download {
+  margin-top: 14px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  border: 1px dashed #e3d6f4;
+  background: #fbf8ff;
+  cursor: pointer;
+  transition: all .18s;
+  text-align: left;
+}
+.app-download:hover { border-color: #cba8ea; background: #f7f0ff; transform: translateY(-1px); }
+.app-download-ico {
+  width: 30px; height: 30px; border-radius: 9px; flex: none;
+  display: grid; place-items: center;
+  background: #f1e6fd; color: #8b3fce;
+}
+.app-download-copy { display: flex; flex-direction: column; gap: 1px; }
+.app-download-copy b { font-size: 12.5px; color: #2b2333; font-weight: 600; }
+.app-download-copy i { font-size: 11px; color: #a49bb1; font-style: normal; }
+.app-download-cta { margin-left: auto; font-size: 11.5px; color: #8b3fce; font-weight: 600; }
+
 @media (max-width: 1024px) {
   .login-page { grid-template-columns: 1fr; }
   .brand-side { display: none; }
-  .form-side { padding: 32px 20px; }
+  .form-side { padding: 24px 16px; }
+  .login-box { padding: 26px 22px 22px; }
 }
 </style>
+

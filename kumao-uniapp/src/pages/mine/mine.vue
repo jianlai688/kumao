@@ -73,6 +73,21 @@
         <text class="rt">会员状态</text>
         <text :class="['rr', { gold: vip }]">{{ vip ? 'VIP 会员 ›' : '未开通 ›' }}</text>
       </view>
+      <view v-if="hasRole('ANCHOR')" class="row" @click="goRole('anchor')">
+        <km-icon name="mic" :size="18" color="rgba(247,241,232,.55)" />
+        <text class="rt">主播个人信息</text>
+        <text class="rr">艺名 / 分类 / 简介 ›</text>
+      </view>
+      <view v-if="hasRole('MUSICIAN')" class="row" @click="goRole('musician')">
+        <km-icon name="music" :size="18" color="rgba(247,241,232,.55)" />
+        <text class="rt">音乐人个人信息</text>
+        <text class="rr">艺名 / 风格 / 代表作 ›</text>
+      </view>
+      <view v-if="hasRole('ADVERTISER')" class="row" @click="goRole('advertiser')">
+        <km-icon name="crown" :size="18" color="rgba(247,241,232,.55)" />
+        <text class="rt">广告商个人信息</text>
+        <text class="rr">主体 / 类型 / 联系人 ›</text>
+      </view>
       <view class="row" @click="goMusicianManage">
         <km-icon name="music" :size="18" color="rgba(247,241,232,.55)" />
         <text class="rt">音乐人作品管理</text>
@@ -109,7 +124,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import KmIcon from '@/components/km-icon.vue'
 import { api } from '@/api'
 import { avatarOf } from '@/utils/media'
@@ -121,6 +137,13 @@ const collectCount = ref(0)
 const followCount = ref(0)
 const vip = ref(false)
 const defaultAvatar = avatarOf('')
+
+const roleList = computed(() => String(user.value.roles || '').split(',').filter(Boolean))
+function hasRole(r) { return roleList.value.includes(r) }
+
+function goRole(type) {
+  uni.navigateTo({ url: `/pages/mine/role-profile?type=${type}` })
+}
 
 const roleText = computed(() => {
   if (!token.value) return '登录后同步收藏与播放记录'
@@ -170,16 +193,23 @@ function logout() {
   uni.showToast({ title: '已退出登录' })
 }
 
-onMounted(async () => {
+onShow(async () => {
   token.value = uni.getStorageSync('km_token') || ''
-  if (!token.value) return
   user.value = uni.getStorageSync('km_user') || {}
+  if (!token.value) {
+    likeCount.value = 0
+    vip.value = false
+    return
+  }
   const [me, likes, status] = await Promise.all([
     api.me().catch(() => null),
     api.likes({ pageNum: 1, pageSize: 1 }).catch(() => null),
     api.vipStatus().catch(() => null)
   ])
-  if (me && me.data) user.value = { ...user.value, ...me.data }
+  if (me && me.data) {
+    user.value = { ...user.value, ...me.data }
+    uni.setStorageSync('km_user', user.value)
+  }
   if (likes && likes.data) likeCount.value = likes.data.total || 0
   if (status && status.data) vip.value = !!status.data.vip
 })
@@ -216,7 +246,7 @@ onMounted(async () => {
   font-size: 16rpx; padding: 3rpx 12rpx; border-radius: 999rpx;
   background: rgba(255, 255, 255, .07); color: rgba(247, 241, 232, .58);
 }
-.tag.gold { background: rgba(245, 180, 91, .14); color: #f5b45b; font-weight: 700; }
+.tag.gold { background: rgba(245, 180, 91, .14); color: var(--km-accent); font-weight: 700; }
 .login-btn {
   height: 56rpx; padding: 0 26rpx; border-radius: 999rpx;
   background: linear-gradient(140deg, #fbd08a, #e08b3e);
@@ -257,7 +287,7 @@ onMounted(async () => {
 .rt { flex: 1; font-size: 24rpx; color: rgba(247, 241, 232, .82); }
 .rt.danger { color: #ff8a94; }
 .rr { font-size: 20rpx; color: rgba(247, 241, 232, .32); }
-.rr.gold { color: #f5b45b; font-weight: 700; }
+.rr.gold { color: var(--km-accent); font-weight: 700; }
 
 .scan {
   margin-top: 28rpx; padding: 28rpx 26rpx;
@@ -269,6 +299,9 @@ onMounted(async () => {
 
 .footer { margin-top: 34rpx; text-align: center; font-size: 17rpx; color: rgba(247, 241, 232, .18); }
 </style>
+
+
+
 
 
 

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-label="富士山下插画封面">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#f8c7be"/>
+      <stop offset="0.44" stop-color="#efc7dc"/>
+      <stop offset="0.78" stop-color="#c59dd8"/>
+      <stop offset="1" stop-color="#9f79bd"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff8e9" stop-opacity=".82"/>
+      <stop offset="1" stop-color="#fff8e9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mist" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".48" stop-color="#fff" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="softBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency=".86" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+    <radialGradient id="vignette" cx="50%" cy="42%" r="65%">
+      <stop offset=".55" stop-color="#2b173e" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2b173e" stop-opacity=".22"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="600" height="600" fill="url(#sky)"/>
+  <circle cx="381" cy="185" r="92" fill="url(#sunGlow)" filter="url(#softBlur)"/>
+  <circle cx="381" cy="185" r="48" fill="#fff4df" opacity=".92"/>
+
+  <g fill="#fff" opacity=".5">
+    <circle cx="92" cy="135" r="1.8"/>
+    <circle cx="126" cy="218" r="1.3"/>
+    <circle cx="240" cy="104" r="1.1"/>
+    <circle cx="295" cy="154" r="1.4"/>
+    <circle cx="482" cy="116" r="1.1"/>
+    <circle cx="522" cy="236" r="1.5"/>
+    <circle cx="163" cy="286" r="1.2"/>
+  </g>
+
+  <path d="M-30 355 70 285 128 322 214 227 268 286 337 238 413 322 479 268 630 352V620H-30Z" fill="#b39ac7" opacity=".55"/>
+  <path d="M-30 402 72 314 146 365 258 244 344 340 423 298 520 384 630 330V620H-30Z" fill="#89659f" opacity=".72"/>
+  <rect x="-20" y="346" width="640" height="58" fill="url(#mist)" opacity=".75"/>
+
+  <path d="M-24 495 102 372 174 431 294 325 414 450 506 394 624 466V620H-24Z" fill="#5d3b79"/>
+  <path d="m102 372 26 82 46-23-46 31-26-90Z" fill="#80609b" opacity=".55"/>
+  <path d="m294 325 28 97 50-35-50 46-28-108Z" fill="#9d83b5" opacity=".42"/>
+
+  <path d="M-24 552 84 495 166 541 292 466 414 545 506 503 624 558V624H-24Z" fill="#3b214f"/>
+  <path d="m292 466 23 73 48-27-48 39-23-85Z" fill="#6b4c84" opacity=".4"/>
+
+  <rect width="600" height="600" fill="url(#vignette)"/>
+  <rect width="600" height="600" filter="url(#grain)" opacity=".065" style="mix-blend-mode:soft-light"/>
+</svg>

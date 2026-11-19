@@ -12,6 +12,15 @@
     <el-table :data="list" style="width:100%; margin-top:14px">
       <el-table-column prop="userId" label="用户ID" width="130" />
       <el-table-column prop="realName" label="真实姓名" width="130" />
+      <el-table-column label="身份证认证" width="170">
+        <template #default="{ row }">
+          <IdCardPreview
+            :front="row.idCardFrontUrl"
+            :back="row.idCardBackUrl"
+            :number="row.idCard"
+          />
+        </template>
+      </el-table-column>
       <el-table-column prop="liveCategory" label="直播分类" width="120" />
       <el-table-column prop="intro" label="简介" min-width="200" show-overflow-tooltip />
       <el-table-column label="状态" width="110">
@@ -45,6 +54,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userApi } from '@/api'
+import IdCardPreview from '@/components/IdCardPreview.vue'
 
 const list = ref([])
 const total = ref(0)

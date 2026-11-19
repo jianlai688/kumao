@@ -174,7 +174,7 @@ function close() {
 .ad-fallback-t { font-size: 30rpx; color: #f7f1e8; font-weight: 800; text-align: center; }
 .ad-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 16rpx 20rpx; display: flex; align-items: flex-end; gap: 10rpx; background: linear-gradient(0deg, rgba(0,0,0,.72), transparent); }
 .ad-content { flex: 1; font-size: 21rpx; color: rgba(255,255,255,.86); }
-.ad-clock { font-size: 19rpx; color: #f5b45b; font-weight: 700; }
+.ad-clock { font-size: 19rpx; color: var(--km-accent); font-weight: 700; }
 .ad-foot { padding: 18rpx 22rpx 26rpx; }
 .ad-progress { height: 6rpx; border-radius: 999rpx; background: rgba(255,255,255,.12); overflow: hidden; }
 .ad-bar { height: 100%; background: linear-gradient(90deg,#fbd08a,#de823c); transition: width .3s ease; }
@@ -185,3 +185,4 @@ function close() {
 .ad-btn.ready { background: linear-gradient(135deg,#fbd08a,#de823c); color: #22150a; }
 .ad-tip { display: block; margin-top: 12rpx; font-size: 18rpx; color: rgba(247,241,232,.3); text-align: center; }
 </style>
+

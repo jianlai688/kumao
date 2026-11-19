@@ -10,5 +10,8 @@ public class PlaylistRequest {
     private String name;
     private String coverUrl;
     private String description;
-    private Integer isPublic = 1;
+    /** 0 私有 1 公开 */
+    private Integer isPublic;
+    /** 兼容 App 端旧字段名，等价于 isPublic */
+    private Integer publicFlag;
 }

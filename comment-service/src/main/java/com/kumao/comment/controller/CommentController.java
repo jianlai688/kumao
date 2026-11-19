@@ -12,6 +12,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/comments")
 @RequiredArgsConstructor
@@ -32,7 +34,9 @@ public class CommentController {
     @PostMapping
     public R<Long> create(@RequestBody @Valid CommentRequest req) {
         LoginUser user = UserContext.get();
-        return R.ok(commentService.create(user.getUserId(), user.getUsername(), null, req));
+        CommentService.CommentCreateOutcome outcome = commentService.create(
+                user.getUserId(), user.getUsername(), null, req);
+        return R.ok(outcome.message(), outcome.id());
     }
 
     @DeleteMapping("/{id}")
@@ -54,6 +58,13 @@ public class CommentController {
                                                 @RequestParam(required = false) Integer status) {
         UserContext.requireAdmin();
         return R.ok(commentService.adminPage(query, songId, status));
+    }
+
+    /** 手动触发「已通过评论」的 AI 复检，违规内容自动封禁 */
+    @PostMapping("/admin/ai-rescan")
+    public R<Map<String, Object>> aiRescan(@RequestParam(required = false, defaultValue = "50") Integer limit) {
+        UserContext.requireAdmin();
+        return R.ok(commentService.rescanApproved(limit == null ? 50 : limit));
     }
 
     @PutMapping("/admin/{id}/status")

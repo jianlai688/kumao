@@ -105,18 +105,23 @@
           <div class="panel-head">
             <div>
               <h2 id="revenue-title" class="panel-title">收益与结算</h2>
-              <p class="panel-sub">会员、音乐人收入与广告投放收入</p>
+              <p class="panel-sub">会员、单曲、直播礼物、广告与音乐人收入汇总</p>
             </div>
             <span class="panel-meta">元</span>
           </div>
           <div class="kv-list">
-            <div class="kv-row"><span>会员收入</span><b class="tabular">¥{{ formatMoney(vip.revenue) }}</b></div>
-            <div class="kv-row"><span>音乐人总收益</span><b class="tabular">¥{{ formatMoney(musician.totalIncome) }}</b></div>
-            <div class="kv-row"><span>广告投放收入</span><b class="tabular">¥{{ formatMoney(ad.placementRevenue) }}</b></div>
+            <div v-for="item in revenue.items" :key="item.key" class="kv-row">
+              <span>{{ item.label }}</span>
+              <b class="tabular" :class="{ cost: item.type === 'COST' }">{{ item.type === 'COST' ? '-' : '' }}¥{{ formatMoney(item.amount) }}</b>
+            </div>
+            <div class="kv-row total-row">
+              <span>合计</span>
+              <b class="tabular">¥{{ formatMoney(revenue.total) }}</b>
+            </div>
             <div class="kv-row muted"><span>待审核提现</span><b class="tabular">{{ formatNum(musician.pendingWithdraw || 0) }} 笔</b></div>
           </div>
           <div class="panel-foot">
-            <span>收入按各业务统计接口汇总</span>
+            <span>各业务统计接口汇总 · {{ revenue.updatedAt || '--' }}</span>
             <router-link to="/admin/musicians">查看结算 <el-icon><ArrowRight /></el-icon></router-link>
           </div>
         </section>
@@ -174,12 +179,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { userApi, liveApi, vipApi, musicianApi, adApi } from '@/api'
+import request from '@/api/request'
 
 const users = ref({})
 const live = ref({})
 const vip = ref({})
 const musician = ref({})
 const ad = ref({})
+const revenue = ref({ total: 0, items: [] })
 const loading = ref(true)
 const failedCount = ref(0)
 const updatedAt = ref('')
@@ -228,7 +235,8 @@ async function loadAll() {
     liveApi.statistics(),
     vipApi.statistics(),
     musicianApi.adminIncome(),
-    adApi.adminRevenue()
+    adApi.adminRevenue(),
+    request.get('/music/admin/revenue/summary')
   ]
   const results = await Promise.allSettled(requests)
   if (results[0].status === 'fulfilled') users.value = results[0].value.data || {}
@@ -236,6 +244,7 @@ async function loadAll() {
   if (results[2].status === 'fulfilled') vip.value = results[2].value.data || {}
   if (results[3].status === 'fulfilled') musician.value = results[3].value.data || {}
   if (results[4].status === 'fulfilled') ad.value = results[4].value.data || {}
+  if (results[5].status === 'fulfilled') revenue.value = results[5].value.data || { total: 0, items: [] }
   services.value = services.value.map((s, i) => ({ ...s, up: results[i]?.status === 'fulfilled' }))
   failedCount.value = results.filter((r) => r.status === 'rejected').length
   updatedAt.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
@@ -305,6 +314,9 @@ onMounted(loadAll)
 .kv-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 30px; border-bottom: 1px solid rgba(255, 255, 255, .045); font-size: 11px; color: var(--km-text-dim); }
 .kv-row:last-child { border-bottom: 0; }
 .kv-row b { color: var(--km-text); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kv-row.total-row { border-top: 1px solid var(--km-border); border-bottom: 0; margin-top: 4px; padding-top: 8px; color: var(--km-text); }
+.kv-row.total-row b { color: var(--km-accent); font-size: 13px; }
+.kv-row b.cost { color: #ff9fb0; }
 .kv-row.muted b { color: var(--km-text-faint); }
 
 .service-panel { padding-bottom: 13px; }

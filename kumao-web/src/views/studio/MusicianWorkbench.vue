@@ -17,6 +17,7 @@
         </div>
       </div>
       <div class="artist-actions">
+        <button class="button button-quiet" type="button" @click="profileOpen = true">编辑资料</button>
         <button class="button button-quiet" type="button" @click="goToHomepage">
           <el-icon><User /></el-icon>
           音乐人主页
@@ -1093,15 +1094,19 @@
                 @uploaded="onLyricUploaded"
               />
               <label class="field lyric-field" for="work-lyric">
-                <span>歌词文本</span>
+                <span class="lyric-label">
+                  <span>歌词文本</span>
+                  <button type="button" class="lyric-gen" :disabled="lyricGenerating" @click="generateLyricTimelineFromAudio">{{ lyricGenerating ? '正在分析音频…' : '按音频时长自动生成时间轴' }}</button>
+                </span>
                 <textarea
                   id="work-lyric"
                   v-model="lyricText"
                   rows="7"
                   placeholder="[00:00.00] 在这里粘贴 LRC 歌词&#10;[00:12.00] 每行以时间标签开头"
                   @input="lyricDirty = true"
+                  @blur="autoTimelineOnBlur"
                 ></textarea>
-                <small>歌词会随作品一起提交审核；修改文本后保存会自动上传新的 LRC 文件。</small>
+                <small>粘贴纯文本歌词后，会按音频时长自动排时间轴并生成 LRC；点击上方按钮可按音频波形重新生成已有时间轴。</small>
               </label>
             </section>
 
@@ -1117,6 +1122,21 @@
                 </span>
                 <input id="work-vip" v-model="workForm.vipOnly" type="checkbox" role="switch" />
               </label>
+              <label class="switch-row" for="work-pay">
+                <span>
+                  <strong>单曲收费</strong>
+                  <small>开启后用户需单独购买该曲才能完整播放</small>
+                </span>
+                <input id="work-pay" v-model="workForm.payEnabled" type="checkbox" role="switch" />
+              </label>
+              <div v-if="workForm.payEnabled" class="price-row">
+                <span class="price-label">单曲价格</span>
+                <span class="price-input">
+                  <i>¥</i>
+                  <input v-model="workForm.priceYuan" type="number" min="1" max="999" step="0.01" inputmode="decimal" />
+                </span>
+                <small>1–999 元，支持两位小数；审核通过后生效</small>
+              </div>
             </section>
 
             <section class="form-section copyright-section">
@@ -1317,6 +1337,7 @@
       </template>
     </el-dialog>
   </div>
+    <RoleProfileDialog v-model="profileOpen" type="musician" :record="musician || {}" @saved="loadProfile" />
 </template>
 
 <script setup>
@@ -1340,6 +1361,7 @@ import {
   Warning
 } from '@element-plus/icons-vue'
 import { musicianApi, musicApi, fileApi } from '@/api'
+import RoleProfileDialog from '@/components/RoleProfileDialog.vue'
 import { useUserStore } from '@/stores/user'
 import EChart from '@/components/EChart.vue'
 import MediaDropzone from '@/components/studio/MediaDropzone.vue'
@@ -1350,8 +1372,10 @@ const fallbackAvatar = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#19151f"/><circle cx="80" cy="62" r="24" fill="#3a3042"/><path d="M30 160c0-28 22-50 50-50s50 22 50 50z" fill="#3a3042"/></svg>'
 )
 const fallbackCover = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#17131d"/><circle cx="150" cy="142" r="58" fill="#2a2233"/><circle cx="150" cy="142" r="13" fill="#6f5b7c"/><path d="M202 95v88a28 28 0 1 1-12-23V112l-50 12v70a28 28 0 1 1-12-23v-74z" fill="#6f5b7c"/></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#f4eef8"/><circle cx="150" cy="142" r="58" fill="#eadcf6"/><circle cx="150" cy="142" r="13" fill="#c9a7e2"/><path d="M202 95v88a28 28 0 1 1-12-23V112l-50 12v70a28 28 0 1 1-12-23v-74z" fill="#b78bd6"/></svg>'
 )
+
+const profileOpen = ref(false)
 
 const tabs = [
   { name: 'works', label: '作品管理' },
@@ -1411,6 +1435,7 @@ const workFormError = ref('')
 const copyrightAccepted = ref(false)
 const lyricText = ref('')
 const lyricDirty = ref(false)
+const lyricGenerating = ref(false)
 const workDraft = ref(null)
 const workForm = reactive(createEmptyWork())
 
@@ -1613,6 +1638,13 @@ const trendOption = computed(() => ({
 const workDraftKey = computed(() => `km_musician_work_draft_${userStore.user?.userId || 'guest'}`)
 const albumDraftKey = computed(() => `km_musician_album_drafts_${userStore.user?.userId || 'guest'}`)
 
+watch(
+  () => workForm.payEnabled,
+  (on) => {
+    if (on && !(Number(workForm.priceYuan) > 0)) workForm.priceYuan = '3.00'
+  }
+)
+
 function createEmptyWork() {
   return {
     name: '',
@@ -1625,6 +1657,8 @@ function createEmptyWork() {
     language: '国语',
     style: '民谣',
     vipOnly: false,
+    payEnabled: false,
+    priceYuan: '3.00',
     releaseDate: ''
   }
 }
@@ -1876,6 +1910,8 @@ function openWorkEditor(row = null) {
       language: row.language || '国语',
       style: row.style || '民谣',
       vipOnly: !!row.vipOnly,
+      payEnabled: Number(row.price || 0) > 0,
+      priceYuan: (Number(row.price || 0) / 100).toFixed(2),
       releaseDate: row.releaseDate || ''
     })
     if (row.lyricUrl) loadLyricText(row.lyricUrl)
@@ -1910,7 +1946,12 @@ function onAudioUploaded({ file, data }) {
   const audio = new Audio()
   audio.preload = 'metadata'
   audio.onloadedmetadata = () => {
-    if (Number.isFinite(audio.duration)) workForm.duration = Math.round(audio.duration)
+    if (Number.isFinite(audio.duration)) {
+      workForm.duration = Math.round(audio.duration)
+      if (generateLyricTimeline({ silent: true })) {
+        ElMessage.success('已根据音频时长自动生成歌词时间轴')
+      }
+    }
   }
   audio.src = data?.url || workForm.audioUrl
 }
@@ -1922,6 +1963,186 @@ async function onLyricUploaded({ file }) {
     lyricDirty.value = true
   } catch {
     ElMessage.warning('歌词文件已上传，但无法读取文本内容')
+  }
+}
+
+function autoTimelineOnBlur() {
+  if (!String(lyricText.value || '').trim() || !Number(workForm.duration)) return
+  if (generateLyricTimeline({ silent: true })) {
+    ElMessage.success('已按音频时长补全歌词时间轴')
+  }
+}
+
+function lrcTime(seconds) {
+  const total = Math.max(0, seconds)
+  const minute = Math.floor(total / 60)
+  const second = total - minute * 60
+  return `[${String(minute).padStart(2, '0')}:${second.toFixed(2).padStart(5, '0')}]`
+}
+
+/**
+ * 去掉行首的 LRC 时间标签，便于重新生成时间轴。
+ */
+function stripLyricTimestamps(line) {
+  return String(line || '')
+    .replace(/^\s*(?:\[\d{1,2}:\d{2}(?:[.:]\d{1,3})?\]\s*)+/, '')
+    .trim()
+}
+
+function lyricLines() {
+  return String(lyricText.value || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+/**
+ * 按歌词文字长度和标点停顿估算每行占用的时长。
+ * 长句、带停顿的句子会分到更多时间。
+ */
+function buildLyricTimeline(lines, start, end) {
+  const weights = lines.map((line) => {
+    const text = stripLyricTimestamps(line).replace(/^\[[^\]]*\]/g, '').trim()
+    const chars = Array.from(text).length
+    const pauses = (text.match(/[，。！？；：、,.!?;:]/g) || []).length
+    return Math.max(2, chars + pauses * 2)
+  })
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0) || lines.length
+  const span = Math.max(Number(end) - Number(start), lines.length * 0.8)
+  let cursor = Math.max(0, Number(start) || 0)
+  return lines
+    .map((line, index) => {
+      const stamp = lrcTime(cursor)
+      cursor += (span * weights[index]) / totalWeight
+      return `${stamp}${line}`
+    })
+    .join('\n')
+}
+
+/**
+ * 按音频时长估算时间轴（同步版本，用于上传音频/失焦兜底）。
+ */
+function generateLyricTimeline(options = {}) {
+  const silent = !!options.silent
+  const force = !!options.force
+  let lines = lyricLines()
+  if (!lines.length) {
+    if (!silent) ElMessage.warning('先粘贴歌词文本，再生成时间轴')
+    return false
+  }
+  const hasTimeline = lines.some((line) => /^\[\d{1,2}:\d{2}(?:[.:]\d{1,3})?\]/.test(line))
+  if (hasTimeline && !force) {
+    if (!silent) ElMessage.info('歌词已带时间轴；点击「按音频时长自动生成时间轴」可重新生成')
+    return false
+  }
+  if (hasTimeline) {
+    lines = lines.map(stripLyricTimestamps).filter(Boolean)
+  }
+  const duration = Number(workForm.duration) || 0
+  if (duration < 10) {
+    if (!silent) ElMessage.warning('请先上传音频获取时长（需大于 10 秒）')
+    return false
+  }
+  const lead = Math.min(5, Math.max(2, duration * 0.04))
+  const tail = Math.min(6, Math.max(2, duration * 0.05))
+  lyricText.value = buildLyricTimeline(lines, lead, duration - tail)
+  lyricDirty.value = true
+  if (!silent) ElMessage.success(`已按音频时长生成 ${lines.length} 行时间轴`)
+  return true
+}
+
+/**
+ * 分析音频能量包络，找出人声/音乐真正开始和结束的位置。
+ * 比固定留 2–5 秒前奏更贴近实际音频。
+ */
+async function analyzeAudioRange(url) {
+  if (!url) return null
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('audio unavailable')
+  const buffer = await response.arrayBuffer()
+  const AudioCtx = window.AudioContext || window.webkitAudioContext
+  if (!AudioCtx) return null
+  const ctx = new AudioCtx()
+  try {
+    const audio = await ctx.decodeAudioData(buffer.slice(0))
+    const data = audio.getChannelData(0)
+    const frame = Math.max(1, Math.floor(audio.sampleRate * 0.05))
+    const rms = []
+    for (let i = 0; i + frame < data.length; i += frame) {
+      let sum = 0
+      for (let j = 0; j < frame; j += 1) {
+        const sample = data[i + j]
+        sum += sample * sample
+      }
+      rms.push(Math.sqrt(sum / frame))
+    }
+    if (rms.length < 20) return null
+    const sorted = [...rms].sort((a, b) => a - b)
+    const percentile = (p) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)))] || 0
+    const mean = rms.reduce((sum, value) => sum + value, 0) / rms.length
+    const threshold = Math.max(percentile(0.55), mean * 0.45)
+    const minRun = Math.max(1, Math.round(0.12 / 0.05))
+    let start = -1
+    let end = -1
+    let runStart = -1
+    for (let i = 0; i < rms.length; i += 1) {
+      if (rms[i] >= threshold && runStart < 0) runStart = i
+      if (rms[i] < threshold && runStart >= 0) {
+        if (i - runStart >= minRun) {
+          if (start < 0) start = runStart
+          end = i
+        }
+        runStart = -1
+      }
+    }
+    if (runStart >= 0 && rms.length - runStart >= minRun) {
+      if (start < 0) start = runStart
+      end = rms.length
+    }
+    if (start < 0) return null
+    return {
+      start: start * 0.05,
+      end: Math.min(audio.duration, end * 0.05),
+      duration: audio.duration
+    }
+  } finally {
+    try { await ctx.close() } catch { /* ignore */ }
+  }
+}
+
+/**
+ * 显式点击按钮：重新分析音频并覆盖已有时间轴。
+ * 用音频能量确定起止，再按歌词长度分配，避免所有行等间隔。
+ */
+async function generateLyricTimelineFromAudio() {
+  if (lyricGenerating.value) return
+  const lines = lyricLines().map(stripLyricTimestamps).filter(Boolean)
+  if (!lines.length) {
+    ElMessage.warning('先粘贴歌词文本，再生成时间轴')
+    return
+  }
+  if (!workForm.audioUrl) {
+    ElMessage.warning('请先上传音频')
+    return
+  }
+  lyricGenerating.value = true
+  try {
+    const range = await analyzeAudioRange(workForm.audioUrl)
+    const duration = Number(workForm.duration) || Number(range?.duration) || 0
+    if (duration < 10) {
+      ElMessage.warning('音频时长不足，无法生成时间轴')
+      return
+    }
+    const start = range ? Math.max(0, range.start) : Math.min(5, Math.max(2, duration * 0.04))
+    const end = range ? Math.min(duration, range.end) : duration - Math.min(6, Math.max(2, duration * 0.05))
+    lyricText.value = buildLyricTimeline(lines, start, end)
+    lyricDirty.value = true
+    ElMessage.success(`已根据音频波形生成 ${lines.length} 行时间轴`)
+  } catch (error) {
+    const ok = generateLyricTimeline({ force: true })
+    if (ok) ElMessage.warning('音频分析失败，已按音频时长估算时间轴')
+  } finally {
+    lyricGenerating.value = false
   }
 }
 
@@ -1990,6 +2211,10 @@ async function submitWork() {
   if (!workForm.audioUrl) errors.push('请上传音频文件')
   if (!workForm.coverUrl) errors.push('请上传封面')
   if (!copyrightAccepted.value) errors.push('请确认版权声明')
+  const priceFen = workForm.payEnabled ? Math.round(Number(workForm.priceYuan || 0) * 100) : 0
+  if (workForm.payEnabled && (!Number.isFinite(priceFen) || priceFen < 100 || priceFen > 99900)) {
+    errors.push('单曲价格需在 1–999 元之间')
+  }
   if (errors.length) {
     workFormError.value = errors.join('；')
     nextTick(() => {
@@ -2017,6 +2242,7 @@ async function submitWork() {
       language: workForm.language,
       style: workForm.style,
       vipOnly: !!workForm.vipOnly,
+      price: priceFen,
       releaseDate: workForm.releaseDate || null
     }
     if (editingWorkId.value) {
@@ -2936,7 +3162,7 @@ onMounted(async () => {
 }
 .works-table td { height: 62px; padding: 8px 10px; border-bottom: 1px solid #1e1a24; color: var(--mc-text); font-size: 13px; vertical-align: middle; }
 .works-table tbody tr:last-child td { border-bottom: 0; }
-.works-table tbody tr:hover, .works-table tbody tr.selected { background: #17131d; }
+.works-table tbody tr:hover, .works-table tbody tr.selected { background: #faf6fe; }
 .works-table .check-cell { width: 38px; padding-left: 14px; padding-right: 4px; }
 .works-table .number-cell { text-align: right; font-variant-numeric: tabular-nums; width: 66px; }
 .works-table .date-cell { width: 92px; color: var(--mc-faint); font-size: 11.5px; }
@@ -2959,11 +3185,11 @@ onMounted(async () => {
   line-height: 1;
   white-space: nowrap;
 }
-.state-pill.is-positive { background: rgba(114, 230, 162, .10); border-color: rgba(114, 230, 162, .18); color: var(--mc-positive); }
-.state-pill.is-warning { background: rgba(246, 193, 119, .10); border-color: rgba(246, 193, 119, .18); color: var(--mc-warning); }
-.state-pill.is-negative { background: rgba(255, 143, 162, .10); border-color: rgba(255, 143, 162, .18); color: var(--mc-negative); }
-.state-pill.is-neutral { background: #221d29; border-color: #342d3e; color: #bdb4c8; }
-.state-pill.is-draft { background: rgba(232, 121, 249, .10); border-color: rgba(232, 121, 249, .18); color: var(--mc-accent); }
+.state-pill.is-positive { background: #eaf9f1; border-color: #d4f0e2; color: #0d8a61; }
+.state-pill.is-warning { background: #fff7e8; border-color: #f6e5c4; color: #b45309; }
+.state-pill.is-negative { background: #fff1f3; border-color: #f3d3d8; color: #c4242a; }
+.state-pill.is-neutral { background: #f3eef8; border-color: #e1d9e9; color: #6f657b; }
+.state-pill.is-draft { background: #f3eaff; border-color: #ddc6f4; color: var(--mc-accent); }
 .reason-note { display: block; margin-top: 3px; color: #c78d9a; font-size: 10.5px; cursor: help; }
 .row-actions { display: flex; align-items: center; gap: 2px; }
 .row-action {
@@ -3055,7 +3281,7 @@ onMounted(async () => {
 
 .album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 12px; margin-top: 14px; }
 .album-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--mc-border); border-radius: 10px; background: var(--mc-surface); }
-.album-cover { aspect-ratio: 1; overflow: hidden; background: #1b1621; }
+.album-cover { aspect-ratio: 1; overflow: hidden; background: #f4eef8; }
 .album-cover img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .album-card-body { padding: 11px 12px 8px; }
 .album-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -3200,7 +3426,19 @@ onMounted(async () => {
 .cover-large-preview img, .cover-placeholder { width: 122px; height: 122px; display: grid; place-items: center; border-radius: 8px; object-fit: cover; background: #1b1621; color: #6f637a; font-size: 24px; }
 .cover-large-preview > span { color: var(--mc-faint); font-size: 10px; }
 .lyric-field { margin-top: 10px; }
+.lyric-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lyric-gen {
+  border: 1px solid var(--km-border); background: rgba(255,255,255,.03);
+  color: var(--km-text-dim); font-size: 11px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+}
+.lyric-gen:hover { color: var(--km-text); border-color: rgba(245,180,91,.5); }
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 38px; cursor: pointer; }
+.price-row { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; flex-wrap: wrap; }
+.price-label { font-size: 12px; color: var(--km-text-dim); min-width: 60px; }
+.price-input { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border: 1px solid var(--km-border); border-radius: 8px; background: rgba(255,255,255,.03); }
+.price-input i { font-style: normal; font-size: 12px; color: var(--km-text-faint); }
+.price-input input { width: 72px; border: 0; background: transparent; color: var(--km-text); font-size: 13px; outline: none; }
+.price-row small { font-size: 11px; color: var(--km-text-faint); }
 .switch-row > span { display: flex; flex-direction: column; gap: 3px; }
 .switch-row strong { font-size: 12px; font-weight: 500; }
 .switch-row small { color: var(--mc-faint); font-size: 10.5px; }
@@ -3279,9 +3517,9 @@ onMounted(async () => {
 @media (max-width: 980px) { .singer-cert-layout { grid-template-columns: 1fr; } }
 .mv-creator-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .mv-own-card { overflow: hidden; border: 1px solid var(--mc-border); border-radius: 10px; background: var(--mc-surface); }
-.mv-own-cover { position: relative; aspect-ratio: 16 / 9; background: #17131d; }
+.mv-own-cover { position: relative; aspect-ratio: 16 / 9; background: #f4eef8; }
 .mv-own-cover img { width: 100%; height: 100%; display: block; object-fit: cover; }
-.mv-own-placeholder { height: 100%; display: grid; place-items: center; color: #655b70; font-size: 24px; }
+.mv-own-placeholder { height: 100%; display: grid; place-items: center; color: #b78bd6; font-size: 24px; }
 .mv-own-quality { position: absolute; top: 8px; right: 8px; padding: 2px 6px; border-radius: 4px; background: rgba(0, 0, 0, .6); color: var(--mc-accent); font-size: 9px; font-weight: 700; }
 .mv-own-copy { display: flex; flex-direction: column; gap: 6px; padding: 10px 11px 11px; }
 .mv-own-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
@@ -3335,7 +3573,7 @@ onMounted(async () => {
   .work-cards { display: flex; flex-direction: column; }
   .work-card { padding: 11px; border-bottom: 1px solid #1e1a24; }
   .work-card:last-child { border-bottom: 0; }
-  .work-card.selected { background: #17131d; }
+  .work-card.selected { background: #faf6fe; }
   .work-card-head { display: flex; align-items: center; gap: 9px; }
   .work-card-head input { width: 15px; height: 15px; flex: none; accent-color: #e879f9; }
   .work-card-head img { width: 42px; height: 42px; flex: none; border-radius: 5px; object-fit: cover; }
@@ -3439,16 +3677,61 @@ onMounted(async () => {
   flex-direction: column;
   max-height: 90vh;
   margin-top: 5vh !important;
-  background: #0d0b11 !important;
-  border: 1px solid #2c2634 !important;
-  border-radius: 10px !important;
+  background: #fff !important;
+  border: 1px solid #ece7f2 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 70px rgba(40, 22, 63, .16) !important;
+  --mc-ground: #f7f5fb;
+  --mc-surface: #fff;
+  --mc-raised: #faf8fc;
+  --mc-border: #ece7f2;
+  --mc-border-strong: #e1d9e9;
+  --mc-input: #fff;
+  --mc-placeholder: #9a90a6;
+  --mc-text: #1d1726;
+  --mc-muted: #5f5769;
+  --mc-faint: #776d83;
+  --mc-accent: var(--km-accent, #8b3fce);
+  --mc-positive: #0d8a61;
+  --mc-negative: #c4242a;
 }
-.mv-publish-dialog .el-dialog__header { padding: 18px 20px 10px; margin: 0; border-bottom: 1px solid #25202d; }
-.mv-publish-dialog .el-dialog__title { color: #f7f4fc; font-size: 16px; font-weight: 600; }
-.mv-publish-dialog .el-dialog__body { flex: 1; min-height: 0; padding: 16px 20px; overflow-y: auto; color: #f7f4fc; }
-.mv-publish-dialog .el-dialog__footer { flex: none; padding: 0 20px 18px; }
-.mv-publish-dialog .el-dialog__headerbtn .el-dialog__close { color: #9c92a7; }
-.mv-publish-dialog .el-dialog__headerbtn:hover .el-dialog__close { color: #fff; }
+.mv-publish-dialog .el-dialog__header { padding: 18px 22px 12px; margin: 0; border-bottom: 1px solid #f0ebf5; }
+.mv-publish-dialog .el-dialog__title { color: #1d1726; font-size: 17px; font-weight: 650; }
+.mv-publish-dialog .el-dialog__body { flex: 1; min-height: 0; padding: 16px 22px 6px; overflow-y: auto; color: #1d1726; }
+.mv-publish-dialog .el-dialog__footer { flex: none; padding: 13px 22px 18px; border-top: 1px solid #f3eef8; }
+.mv-publish-dialog .el-dialog__headerbtn .el-dialog__close { color: #8b8195; }
+.mv-publish-dialog .el-dialog__headerbtn:hover .el-dialog__close { color: #4f465a; }
+.mv-publish-dialog .form-section { border-bottom-color: #f1ebf6; }
+.mv-publish-dialog .form-section-head h3 { color: #1d1726; }
+.mv-publish-dialog .form-section-head span { color: #8a8096; }
+.mv-publish-dialog .field > span { color: #5f5769; }
+.mv-publish-dialog .field input,
+.mv-publish-dialog .field select,
+.mv-publish-dialog .field textarea {
+  min-height: 40px;
+  border-color: #e1d9e9;
+  background: #fff;
+  color: #1d1726;
+}
+.mv-publish-dialog .field input::placeholder,
+.mv-publish-dialog .field textarea::placeholder { color: #9a90a6; }
+.mv-publish-dialog .field input:focus,
+.mv-publish-dialog .field select:focus,
+.mv-publish-dialog .field textarea:focus {
+  border-color: var(--km-accent, #8b3fce);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-accent, #8b3fce) 11%, transparent);
+}
+.mv-publish-dialog .mv-check { color: #5f5769; }
+.mv-publish-dialog .text-button { color: #6f657b; }
+.mv-publish-dialog .text-button:hover { color: #2b2334; }
+.mv-publish-dialog .button-primary {
+  border-color: transparent;
+  background: var(--km-grad, linear-gradient(120deg, #8b3fce, #c44b96));
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(112, 53, 160, .16);
+}
+.mv-publish-dialog .button-primary:hover:not(:disabled) { filter: brightness(1.04); }
+.mv-publish-dialog .inline-alert { border-color: #f0c9cf; background: #fff5f6; color: #b4233a; }
 @media (max-height: 760px) { .mv-publish-dialog { max-height: 94vh; margin-top: 3vh !important; } }
 .album-editor-dialog {
   display: flex;
@@ -3467,8 +3750,161 @@ onMounted(async () => {
 @media (max-height: 760px) {
   .album-editor-dialog { max-height: 94vh; margin-top: 3vh !important; }
 }
+
+/* 创作弹层统一浅色主题 */
+.work-editor-drawer,
+.album-editor-dialog,
+.withdraw-dialog {
+  --mc-ground: #f7f5fb;
+  --mc-surface: #fff;
+  --mc-raised: #faf8fc;
+  --mc-border: #ece7f2;
+  --mc-border-strong: #e1d9e9;
+  --mc-input: #fff;
+  --mc-placeholder: #9a90a6;
+  --mc-text: #1d1726;
+  --mc-muted: #5f5769;
+  --mc-faint: #776d83;
+  --mc-accent: var(--km-accent, #8b3fce);
+  --mc-positive: #0d8a61;
+  --mc-negative: #c4242a;
+  color: #1d1726;
+}
+.work-editor-drawer {
+  background: #fff !important;
+  border-left: 1px solid #ece7f2;
+  box-shadow: -18px 0 55px rgba(40, 22, 63, .1) !important;
+}
+.album-editor-dialog,
+.withdraw-dialog {
+  background: #fff !important;
+  border: 1px solid #ece7f2 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 70px rgba(40, 22, 63, .16) !important;
+}
+.work-editor-drawer .drawer-shell { color: #1d1726; }
+.work-editor-drawer .drawer-head { border-bottom-color: #f0ebf5; }
+.work-editor-drawer .drawer-head h2 { color: #1d1726; }
+.work-editor-drawer .drawer-head p { color: #776d83; }
+.work-editor-drawer .drawer-close {
+  border-color: #e4d9ee;
+  background: #fff;
+  color: #6f657b;
+}
+.work-editor-drawer .drawer-close:hover { background: #faf6fe; color: #2b2334; }
+.work-editor-drawer .drawer-body { background: #fff; }
+.work-editor-drawer .drawer-foot {
+  border-top-color: #f0ebf5;
+  background: #fdfbff;
+}
+.album-editor-dialog .el-dialog__header,
+.withdraw-dialog .el-dialog__header {
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid #f0ebf5;
+}
+.album-editor-dialog .el-dialog__title,
+.withdraw-dialog .el-dialog__title { color: #1d1726; font-size: 17px; font-weight: 650; }
+.album-editor-dialog .el-dialog__body,
+.withdraw-dialog .el-dialog__body { padding: 16px 22px 8px; color: #1d1726; }
+.album-editor-dialog .el-dialog__footer,
+.withdraw-dialog .el-dialog__footer { padding: 13px 22px 18px; border-top: 1px solid #f3eef8; }
+.album-editor-dialog .el-dialog__headerbtn .el-dialog__close,
+.withdraw-dialog .el-dialog__headerbtn .el-dialog__close { color: #8b8195; }
+.album-editor-dialog .el-dialog__headerbtn:hover .el-dialog__close,
+.withdraw-dialog .el-dialog__headerbtn:hover .el-dialog__close { color: #4f465a; }
+.work-editor-drawer .form-section,
+.album-editor-dialog .form-section,
+.withdraw-dialog .form-section { border-bottom-color: #f1ebf6; }
+.work-editor-drawer .form-section-head h3,
+.album-editor-dialog .form-section-head h3,
+.withdraw-dialog .form-section-head h3 { color: #1d1726; }
+.work-editor-drawer .form-section-head span,
+.album-editor-dialog .form-section-head span,
+.withdraw-dialog .form-section-head span { color: #8a8096; }
+.work-editor-drawer .field > span,
+.album-editor-dialog .field > span,
+.withdraw-dialog .field > span { color: #5f5769; }
+.work-editor-drawer .field input,
+.work-editor-drawer .field select,
+.work-editor-drawer .field textarea,
+.album-editor-dialog .field input,
+.album-editor-dialog .field select,
+.album-editor-dialog .field textarea,
+.withdraw-dialog .field input,
+.withdraw-dialog .field select,
+.withdraw-dialog .field textarea {
+  min-height: 40px;
+  border-color: #e1d9e9;
+  background: #fff;
+  color: #1d1726;
+}
+.work-editor-drawer .field input::placeholder,
+.work-editor-drawer .field textarea::placeholder,
+.album-editor-dialog .field input::placeholder,
+.album-editor-dialog .field textarea::placeholder,
+.withdraw-dialog .field input::placeholder,
+.withdraw-dialog .field textarea::placeholder { color: #9a90a6; }
+.work-editor-drawer .field input:focus,
+.work-editor-drawer .field select:focus,
+.work-editor-drawer .field textarea:focus,
+.album-editor-dialog .field input:focus,
+.album-editor-dialog .field select:focus,
+.album-editor-dialog .field textarea:focus,
+.withdraw-dialog .field input:focus,
+.withdraw-dialog .field textarea:focus {
+  border-color: var(--km-accent, #8b3fce);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-accent, #8b3fce) 11%, transparent);
+}
+.work-editor-drawer .form-hint,
+.album-editor-dialog .form-hint,
+.withdraw-dialog .form-hint { color: #776d83; }
+.work-editor-drawer .copyright-section,
+.work-editor-drawer .price-input {
+  border-color: #ece7f2;
+  background: #faf7fd;
+}
+.work-editor-drawer .cover-large-preview img,
+.work-editor-drawer .cover-placeholder,
+.album-editor-dialog .album-cover,
+.album-editor-dialog .track-option img {
+  background: #f4eef8;
+  color: #8a7a99;
+}
+.album-editor-dialog .album-cover-section { border-bottom-color: #f1ebf6; }
+.album-editor-dialog .track-search {
+  border-color: #e1d9e9;
+  background: #fff;
+  color: #776d83;
+}
+.album-editor-dialog .track-search input { color: #1d1726; }
+.album-editor-dialog .track-search input::placeholder { color: #9a90a6; }
+.album-editor-dialog .track-option:hover { background: #faf6fe; }
+.album-editor-dialog .track-option-copy small { color: #776d83; }
+.withdraw-dialog .withdraw-balance {
+  border-color: #ece7f2;
+  background: #faf7fd;
+}
+.withdraw-dialog .withdraw-balance span,
+.withdraw-dialog .withdraw-balance small { color: #776d83; }
+.withdraw-dialog .withdraw-method {
+  border-color: #e1d9e9;
+  background: #fff;
+  color: #1d1726;
+}
+.withdraw-dialog .withdraw-method:hover { border-color: #d3bce6; background: #fdfbff; }
+.withdraw-dialog .withdraw-method.selected {
+  border-color: var(--km-accent, #8b3fce);
+  background: #faf4ff;
+}
+.withdraw-dialog .withdraw-method-copy small { color: #776d83; }
+.withdraw-dialog .withdraw-method-field legend { color: #5f5769; }
+.work-editor-drawer .text-button,
+.album-editor-dialog .text-button,
+.withdraw-dialog .text-button { color: #6f657b; }
+.work-editor-drawer .text-button:hover,
+.album-editor-dialog .text-button:hover,
+.withdraw-dialog .text-button:hover { color: #2b2334; }
+.work-editor-drawer .inline-alert,
+.album-editor-dialog .inline-alert,
+.withdraw-dialog .inline-alert { border-color: #f0c9cf; background: #fff5f6; color: #b4233a; }
 </style>
-
-
-
-

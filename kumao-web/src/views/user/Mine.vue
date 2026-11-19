@@ -336,13 +336,19 @@ onMounted(async () => {
   padding: 3px 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, .07);
-  color: rgba(243, 244, 246, .7);
+  color: var(--km-text-dim);
 }
 .role-tag.vip { background: linear-gradient(90deg, #c9971f, #f7d774); color: #2a1f00; }
 .role-tag.admin { background: rgba(255, 77, 109, .18); color: #ff8095; }
 .role-tag.musician { background: rgba(192, 132, 252, .16); color: var(--km-accent); }
 .role-tag.anchor { background: rgba(96, 190, 255, .16); color: #7cc7ff; }
-.hero-meta { margin: 10px 0 0; font-size: 12px; color: var(--km-text-faint); }
+/* 浅色用户主题下提高身份标签文字对比度 */
+body.km-user-theme .role-tag { background: #f1eaf9; color: #5f5769; }
+body.km-user-theme .role-tag.vip { background: linear-gradient(90deg, #c9971f, #f7d774); color: #2a1f00; }
+body.km-user-theme .role-tag.admin { background: #ffe8ee; color: #b3123f; }
+body.km-user-theme .role-tag.musician { background: color-mix(in srgb, var(--km-accent) 12%, #fff); color: var(--km-accent); }
+body.km-user-theme .role-tag.anchor { background: #e8f2ff; color: #1d4ed8; }
+.hero-meta { margin: 10px 0 0; font-size: 12px; color: var(--km-text-dim); }
 
 .edit-btn {
   position: relative;
@@ -391,11 +397,11 @@ onMounted(async () => {
 }
 .tab-btn:hover { color: var(--km-text); background: rgba(255, 255, 255, .05); }
 .tab-btn.active {
-  background: var(--km-accent);
-  color: #07080a;
-  border-color: var(--km-accent);
+  background: var(--km-grad);
+  color: #fff;
+  border-color: transparent;
   font-weight: 800;
-  box-shadow: 0 8px 22px rgba(192, 132, 252, .2);
+  box-shadow: 0 8px 22px rgba(153, 45, 190, .16);
 }
 
 /* 面板 */
@@ -428,7 +434,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: all .18s;
 }
-.btn-mini:hover { background: var(--km-accent); color: #07080a; border-color: var(--km-accent); }
+.btn-mini:hover { background: var(--km-grad); color: #fff; border-color: transparent; }
 .btn-mini:disabled { opacity: .4; cursor: not-allowed; }
 
 /* 歌曲行 */
@@ -471,7 +477,7 @@ onMounted(async () => {
   transition: all .18s;
   flex-shrink: 0;
 }
-.t-btn:hover { color: #07080a; background: var(--km-accent); border-color: var(--km-accent); }
+.t-btn:hover { color: #fff; background: var(--km-grad); border-color: transparent; }
 .t-btn.danger:hover { background: #ff4d6d; border-color: #ff4d6d; color: #fff; }
 
 /* 歌单网格 */

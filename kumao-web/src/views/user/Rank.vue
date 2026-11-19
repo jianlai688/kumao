@@ -21,7 +21,7 @@
         @click="switchTab(t.key)"
       >
         <div class="tab-glow"></div>
-        <div class="tab-ico">{{ t.icon }}</div>
+        <div class="tab-ico"><KmIcon :name="t.icon" :size="22" /></div>
         <div class="tab-body">
           <div class="tab-name">{{ t.name }}</div>
           <div class="tab-desc">{{ t.desc }}</div>
@@ -49,14 +49,14 @@
         >
           <div class="idx" :class="{ top: i < 3 }">{{ String(i + 1).padStart(2, '0') }}</div>
 
-          <div class="row-cover-wrap" @click="$router.push(`/song/${row.songId}`)">
+          <div class="row-cover-wrap" @click="$router.push(`/song/${row.songId || row.id}`)">
             <img :src="row.coverUrl || fallback" class="row-cover" @error="onImg" />
             <div class="row-play" @click.stop="playRow(row)">
               <el-icon><VideoPlay /></el-icon>
             </div>
           </div>
 
-          <div class="row-main" @click="$router.push(`/song/${row.songId}`)">
+          <div class="row-main" @click="$router.push(`/song/${row.songId || row.id}`)">
             <div class="row-title">
               <span class="row-name">{{ row.name }}</span>
               <span v-if="row.vipOnly" class="km-tag-vip">VIP</span>
@@ -92,6 +92,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { musicApi, playlistApi } from '@/api'
 import { usePlayerStore } from '@/stores/player'
 import { useUserStore } from '@/stores/user'
+import KmIcon from '@/components/KmIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -99,9 +100,9 @@ const player = usePlayerStore()
 const userStore = useUserStore()
 
 const tabs = [
-  { key: 'hot', name: '热门榜', desc: '全站热度最高', icon: '🔥' },
-  { key: 'new', name: '新歌榜', desc: '最新发行歌曲', icon: '🌙' },
-  { key: 'rising', name: '飙升榜', desc: '近期热度飙升', icon: '🚀' }
+  { key: 'hot', name: '热门榜', desc: '全站热度最高', icon: 'star' },
+  { key: 'new', name: '新歌榜', desc: '最新发行歌曲', icon: 'music' },
+  { key: 'rising', name: '飙升榜', desc: '近期热度飙升', icon: 'rank' }
 ]
 
 const type = ref(route.params.type || 'hot')
@@ -240,7 +241,16 @@ onMounted(load)
 }
 .rank-tab.active .tab-glow { opacity: 1; }
 
-.tab-ico { font-size: 26px; }
+.tab-ico {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f5ecff;
+  color: var(--km-brand-violet);
+  font-size: 22px;
+}
 .tab-body { flex: 1; }
 .tab-name { font-size: 16px; font-weight: 800; }
 .tab-desc { font-size: 12px; color: var(--km-text-dim); margin-top: 4px; }

@@ -155,9 +155,9 @@ onBeforeUnmount(() => clearInterval(timer))
   width: min(560px, 100%);
   border-radius: 20px;
   overflow: hidden;
-  background: #14121b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  background: #fff;
+  border: 1px solid #ece7f2;
+  box-shadow: 0 30px 80px rgba(40, 22, 63, 0.2);
 }
 .ad-card__head {
   display: flex;
@@ -169,13 +169,13 @@ onBeforeUnmount(() => clearInterval(timer))
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.72);
+  background: #f3eef8;
+  color: #6f657b;
 }
 .ad-card__name {
   flex: 1;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.82);
+  color: #2b2334;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -183,10 +183,11 @@ onBeforeUnmount(() => clearInterval(timer))
 .ad-card__close {
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.55);
+  color: #8b8195;
   cursor: pointer;
   font-size: 15px;
 }
+.ad-card__close:hover { color: #4f465a; }
 .ad-card__body {
   position: relative;
   height: 300px;
@@ -204,10 +205,10 @@ onBeforeUnmount(() => clearInterval(timer))
   display: grid;
   place-items: center;
   padding: 24px;
-  color: #f6f2ea;
+  color: #5f5769;
   font-size: 18px;
   text-align: center;
-  background: linear-gradient(135deg, #2a2033, #101018);
+  background: linear-gradient(135deg, #faf6ff, #f3eef8);
 }
 .ad-card__overlay {
   position: absolute;
@@ -227,7 +228,7 @@ onBeforeUnmount(() => clearInterval(timer))
 .ad-card__clock {
   font-size: 12px;
   font-weight: 700;
-  color: #f5b45b;
+  color: var(--km-accent);
 }
 .ad-card__foot {
   padding: 16px 18px 20px;
@@ -235,7 +236,7 @@ onBeforeUnmount(() => clearInterval(timer))
 .ad-card__progress {
   height: 3px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: #eee8f4;
   overflow: hidden;
 }
 .ad-card__progress i {
@@ -253,8 +254,8 @@ onBeforeUnmount(() => clearInterval(timer))
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(246, 242, 234, 0.62);
+  background: #f4f0f8;
+  color: #9a90a6;
 }
 .ad-card__btn.ready {
   background: linear-gradient(135deg, #fbd08a, #de823c);
@@ -264,7 +265,7 @@ onBeforeUnmount(() => clearInterval(timer))
   margin: 10px 0 0;
   text-align: center;
   font-size: 11px;
-  color: rgba(246, 242, 234, 0.32);
+  color: #8a8096;
 }
 .ad-fade-enter-active,
 .ad-fade-leave-active {

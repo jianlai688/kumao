@@ -165,9 +165,9 @@ onShow(() => {
   display: flex; align-items: center; justify-content: center;
   border: 1rpx solid rgba(245,180,91,.25);
 }
-.hero-hole { width: 34rpx; height: 34rpx; border-radius: 50%; background: #f5b45b; opacity: .85; }
+.hero-hole { width: 34rpx; height: 34rpx; border-radius: 50%; background: var(--km-accent); opacity: .85; }
 .hero-copy { flex: 1; min-width: 0; }
-.hero-eyebrow { font-size: 17rpx; letter-spacing: 3rpx; color: #f5b45b; font-weight: 800; }
+.hero-eyebrow { font-size: 17rpx; letter-spacing: 3rpx; color: var(--km-accent); font-weight: 800; }
 .hero-title { display: block; margin-top: 6rpx; font-size: 36rpx; font-weight: 900; color: #f7f1e8; letter-spacing: -1rpx; }
 .hero-sub { display: block; margin-top: 6rpx; font-size: 21rpx; color: rgba(247,241,232,.42); }
 .hero-actions { display: flex; gap: 12rpx; margin-top: 16rpx; }
@@ -179,11 +179,11 @@ onShow(() => {
 .ghost {
   display: flex; align-items: center; gap: 6rpx; height: 60rpx; padding: 0 20rpx;
   border-radius: 999rpx; background: rgba(245,180,91,.1); border: 1rpx solid rgba(245,180,91,.26);
-  color: #f5b45b; font-size: 22rpx; font-weight: 700;
+  color: var(--km-accent); font-size: 22rpx; font-weight: 700;
 }
 
 .state { padding: 120rpx 0; display: flex; flex-direction: column; align-items: center; gap: 16rpx; color: rgba(247,241,232,.4); font-size: 23rpx; }
-.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: #f5b45b; animation: spin .8s linear infinite; }
+.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: var(--km-accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .empty { padding: 100rpx 60rpx; display: flex; flex-direction: column; align-items: center; gap: 12rpx; }
@@ -203,4 +203,5 @@ onShow(() => {
 .unlike { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; }
 .list-foot { text-align: center; padding: 30rpx 0 40rpx; font-size: 20rpx; color: rgba(247,241,232,.24); }
 </style>
+
 

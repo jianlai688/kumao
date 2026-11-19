@@ -12,6 +12,12 @@ spring:
         file-extension: yaml
         import-check:
           enabled: false
+    openfeign:
+      client:
+        config:
+          review-service:
+            connect-timeout: 1000
+            read-timeout: 12000
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/kumao_music?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
@@ -36,7 +42,6 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 kumao:
   moderation:
-    mute-minutes: ${MODERATION_MUTE_MINUTES:60}
     reject-risk-score: ${MODERATION_REJECT_RISK:35}
   mq:
     play-record-queue: kumao.play.record

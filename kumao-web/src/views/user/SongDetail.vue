@@ -77,7 +77,7 @@
             <div
               v-for="(line, i) in displayLyrics"
               :key="i"
-              :class="['lyric-line', { active: i === player.lyricIndex && isCurrent }]"
+              :class="['lyric-line', { active: i === activeLyricIndex }]"
             >
               {{ line.text || '♪' }}
             </div>
@@ -100,7 +100,7 @@
               />
               <div class="ci-foot">
                 <span class="km-faint">{{ commentText.length }}/500</span>
-                <button class="btn-primary sm" :disabled="!commentText.trim()" @click="submitComment">发表评论</button>
+                <button class="btn-primary sm" :disabled="!commentText.trim() || commentSubmitting" @click="submitComment">{{ commentSubmitting ? '发表中…' : '发表评论' }}</button>
               </div>
             </div>
           </div>
@@ -172,6 +172,7 @@ const tab = ref('lyric')
 const comments = ref([])
 const commentTotal = ref(0)
 const commentText = ref('')
+const commentSubmitting = ref(false)
 const query = reactive({ pageNum: 1, pageSize: 10 })
 const showAdd = ref(false)
 const myPlaylists = ref([])
@@ -198,6 +199,17 @@ const creditLines = computed(() =>
 const displayLyrics = computed(() =>
   lyrics.value.filter((l) => !/^(作词|作曲|编曲|制作人|出品)/.test((l.text || '').trim()))
 )
+
+/** 当前播放到第几行歌词（按当前歌曲的播放进度计算，兼容过滤掉制作人信息后的行号） */
+const activeLyricIndex = computed(() => {
+  if (!isCurrent.value) return -1
+  const currentMs = (Number(player.progress) || 0) * 1000
+  let index = -1
+  displayLyrics.value.forEach((line, i) => {
+    if (Number(line.time) <= currentMs) index = i
+  })
+  return index
+})
 
 function onImg(e) {
   e.target.src = fallbackCover
@@ -256,10 +268,22 @@ async function loadComments() {
 
 async function submitComment() {
   if (!userStore.isLogin) return router.push('/login')
-  await commentApi.create({ songId: Number(route.params.id), content: commentText.value.trim() })
-  commentText.value = ''
-  ElMessage.success('评论成功')
-  await loadComments()
+  if (commentSubmitting.value) return
+  commentSubmitting.value = true
+  try {
+    const res = await commentApi.create({ songId: route.params.id, content: commentText.value.trim() })
+    commentText.value = ''
+    if (String(res?.message || '').includes('复核')) {
+      ElMessage.warning(res.message)
+    } else {
+      ElMessage.success(res?.message || '评论成功')
+    }
+    await loadComments()
+  } catch (e) {
+    /* 错误提示由请求拦截器统一处理 */
+  } finally {
+    commentSubmitting.value = false
+  }
 }
 
 async function addToPlaylist() {
@@ -270,14 +294,16 @@ async function addToPlaylist() {
 }
 
 watch(
-  () => player.lyricIndex,
-  async () => {
+  () => activeLyricIndex.value,
+  async (i) => {
+    if (i < 0) return
     await nextTick()
     const box = lyricBox.value
     if (!box) return
-    const el = box.querySelector('.lyric-line.active')
+    const el = box.querySelectorAll('.lyric-line')[i]
     if (el) box.scrollTo({ top: el.offsetTop - box.clientHeight / 2 + 24, behavior: 'smooth' })
-  }
+  },
+  { immediate: true }
 )
 
 onMounted(async () => {

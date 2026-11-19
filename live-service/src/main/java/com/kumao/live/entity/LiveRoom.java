@@ -31,6 +31,8 @@ public class LiveRoom extends BaseEntity {
     private String pushUrl;
     private String pullUrl;
     private String replayUrl;
+    /** 开播前设置的直播歌单（歌曲 ID，逗号分隔，按顺序播放） */
+    private String playlistIds;
     private Long onlineCount;
     private Long peakOnline;
     private Long likeCount;

@@ -112,18 +112,19 @@ function onClear() {
 .qrow + .qrow { border-top: 1rpx solid rgba(255, 255, 255, .04); }
 .qrow.on { background: rgba(245, 180, 91, .08); }
 .no { width: 30rpx; text-align: center; font-size: 20rpx; color: rgba(247, 241, 232, .24); font-style: italic; }
-.qrow.on .no { color: #f5b45b; font-weight: 700; }
+.qrow.on .no { color: var(--km-accent); font-weight: 700; }
 .cv { width: 60rpx; height: 60rpx; border-radius: 16rpx; background: #1a1c21; flex-shrink: 0; }
 .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
 .n { font-size: 23rpx; color: rgba(247, 241, 232, .86); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.qrow.on .n { color: #f5b45b; font-weight: 600; }
+.qrow.on .n { color: var(--km-accent); font-weight: 600; }
 .a { font-size: 18rpx; color: rgba(247, 241, 232, .32); }
 .eq { display: flex; align-items: flex-end; gap: 4rpx; height: 26rpx; margin-right: 8rpx; }
-.b { width: 5rpx; border-radius: 3rpx; background: linear-gradient(180deg, #f5b45b, #e08b3e); animation: bounce 1s infinite ease-in-out; }
+.b { width: 5rpx; border-radius: 3rpx; background: linear-gradient(180deg, var(--km-accent), #e08b3e); animation: bounce 1s infinite ease-in-out; }
 .b1 { height: 12rpx; animation-delay: 0s; }
 .b2 { height: 22rpx; animation-delay: .18s; }
 .b3 { height: 16rpx; animation-delay: .34s; }
 @keyframes bounce { 0%, 100% { transform: scaleY(.5); } 50% { transform: scaleY(1); } }
 .tip { padding: 60rpx 0; text-align: center; font-size: 20rpx; color: rgba(247, 241, 232, .26); }
 </style>
+
 

@@ -105,8 +105,9 @@ function openList() {
 .prog-i {
   height: 100%;
   border-radius: 4rpx;
-  background: linear-gradient(90deg, #f5b45b, #ee7f93);
+  background: linear-gradient(90deg, var(--km-accent), #ee7f93);
 }
 </style>
+
 
 

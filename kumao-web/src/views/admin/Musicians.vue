@@ -24,6 +24,15 @@
             </template>
           </el-table-column>
           <el-table-column prop="representative" label="代表作" min-width="160" show-overflow-tooltip />
+          <el-table-column label="身份证认证" width="170">
+            <template #default="{ row }">
+              <IdCardPreview
+                :front="row.idCardFrontUrl"
+                :back="row.idCardBackUrl"
+                :number="row.idCard"
+              />
+            </template>
+          </el-table-column>
           <el-table-column prop="fansCount" label="粉丝" width="100" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
@@ -116,6 +125,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { musicianApi } from '@/api'
+import IdCardPreview from '@/components/IdCardPreview.vue'
 
 const tab = ref('apply')
 const list = ref([])
@@ -203,7 +213,7 @@ onMounted(load)
 .u-sub { font-size: 12px; color: var(--km-text-dim); }
 .w-cover { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
 .pager { display: flex; justify-content: flex-end; margin-top: 14px; }
-.stat-card { background: linear-gradient(160deg, #16171c, #111216); border: 1px solid var(--km-border); border-radius: 18px; padding: 22px; text-align: center; }
-.value { font-size: 30px; font-weight: 900; letter-spacing: -1px; color: var(--km-accent); }
-.label { font-size: 12px; color: var(--km-text-faint); margin-top: 4px; }
+.stat-card { background: linear-gradient(180deg, #fff, #fdfbff); border: 1px solid #ece7f2; border-radius: 16px; padding: 20px 22px; text-align: center; box-shadow: 0 8px 22px rgba(61, 36, 92, .035); }
+.value { font-size: 30px; font-weight: 800; letter-spacing: -.04em; color: var(--km-accent); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; color: #6f657b; margin-top: 5px; }
 </style>

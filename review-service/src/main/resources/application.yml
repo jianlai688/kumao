@@ -60,7 +60,7 @@ kumao:
       page-size: ${AI_AUTO_REVIEW_PAGE_SIZE:30}
       pass-risk-threshold: ${AI_AUTO_REVIEW_PASS_RISK:35}
       max-items-per-run: ${AI_AUTO_REVIEW_MAX_ITEMS:60}
-      auto-approve-categories: ${AI_AUTO_REVIEW_CATEGORIES:ANCHOR_APPLY,MUSICIAN,ADVERTISER,AD_MATERIAL,AD_PLAN,SONG,MV,COMMENT,DANMAKU,SINGER}
+      auto-approve-categories: ${AI_AUTO_REVIEW_CATEGORIES:ANCHOR_APPLY,MUSICIAN,ADVERTISER,AD_MATERIAL,AD_PLAN,SONG,MV,SINGER}
 
 management:
   endpoints:

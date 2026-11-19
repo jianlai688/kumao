@@ -14,7 +14,7 @@
           <div class="step"><span class="s-num">3</span><span>发布作品</span></div>
         </div>
       </div>
-      <div class="hero-emoji">🎸</div>
+      <div class="hero-emoji" aria-hidden="true"><el-icon><Headset /></el-icon></div>
     </div>
 
     <div class="layout">
@@ -38,6 +38,40 @@
           <div class="f-item">
             <label class="f-label">真实姓名 <em>*</em></label>
             <el-input v-model="form.realName" placeholder="请输入真实姓名" size="large" />
+          </div>
+        </div>
+
+        <div class="f-item">
+          <label class="f-label">身份证号 <em>*</em></label>
+          <el-input v-model="form.idCard" placeholder="请输入身份证号" size="large" />
+        </div>
+
+        <div class="f-grid">
+          <div class="f-item">
+            <label class="f-label">身份证人像面 <em>*</em></label>
+            <MediaDropzone
+              v-model="form.idCardFrontUrl"
+              kind="cover"
+              biz-type="id-card"
+              title="上传身份证人像面"
+              hint="请上传清晰、完整的身份证人像面，单张不超过 10MB"
+              done-title="身份证人像面已上传"
+              ready-text="身份证人像面已就绪"
+              :max-size-mb="10"
+            />
+          </div>
+          <div class="f-item">
+            <label class="f-label">身份证国徽面 <em>*</em></label>
+            <MediaDropzone
+              v-model="form.idCardBackUrl"
+              kind="cover"
+              biz-type="id-card"
+              title="上传身份证国徽面"
+              hint="请上传清晰、完整的身份证国徽面，单张不超过 10MB"
+              done-title="身份证国徽面已上传"
+              ready-text="身份证国徽面已就绪"
+              :max-size-mb="10"
+            />
           </div>
         </div>
 
@@ -106,11 +140,22 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { musicianApi } from '@/api'
 import AvatarUploader from '@/components/AvatarUploader.vue'
+import MediaDropzone from '@/components/studio/MediaDropzone.vue'
 
 const styles = ['流行', '摇滚', '民谣', '电子', '说唱', '古风', '爵士', 'R&B']
 const loading = ref(false)
 const mine = ref(null)
-const form = reactive({ stageName: '', realName: '', style: '民谣', avatar: '', intro: '', representative: '' })
+const form = reactive({
+  stageName: '',
+  realName: '',
+  idCard: '',
+  idCardFrontUrl: '',
+  idCardBackUrl: '',
+  style: '民谣',
+  avatar: '',
+  intro: '',
+  representative: ''
+})
 
 const perks = [
   { icon: '🎵', title: '上传作品', desc: '无限制上传原创单曲与专辑' },
@@ -123,7 +168,9 @@ const statusText = (s) => ({ PENDING: '审核中', APPROVED: '已通过', REJECT
 const statusClass = (s) => ({ PENDING: 'warn', APPROVED: 'ok', REJECTED: 'bad', REVOKED: 'bad' }[s] || 'muted')
 
 async function submit() {
-  if (!form.stageName || !form.realName || !form.style) return ElMessage.warning('请填写完整信息')
+  if (!form.stageName || !form.realName || !form.idCard || !form.idCardFrontUrl || !form.idCardBackUrl || !form.style) {
+    return ElMessage.warning('请填写艺名、真实姓名、身份证号并上传身份证正反面')
+  }
   loading.value = true
   try {
     await musicianApi.apply(form)
@@ -141,6 +188,9 @@ async function load() {
     Object.assign(form, {
       stageName: res.data.stageName,
       realName: res.data.realName,
+      idCard: res.data.idCard,
+      idCardFrontUrl: res.data.idCardFrontUrl,
+      idCardBackUrl: res.data.idCardBackUrl,
       style: res.data.style,
       avatar: res.data.avatar,
       intro: res.data.intro,

@@ -39,33 +39,72 @@
       <text class="badge">免</text>
     </view>
 
-    <!-- ============ 今日主打 ============ -->
-    <view class="hero" @click="featured && openSong(featured)">
-      <image v-if="featured" class="hero-bg" :src="coverOf(featured.coverUrl)" mode="aspectFill" />
-      <view class="hero-scrim"></view>
-      <view class="hero-top">
-        <text class="tag">今日主打</text>
-        <view v-if="liveRooms.length" class="live-now">
-          <view class="pip"></view>{{ liveRooms.length }} 个现场正在发生
-        </view>
-      </view>
-      <view class="hero-copy">
-        <text class="hero-name">{{ featured ? featured.name : '今天想听点什么？' }}</text>
-        <text class="hero-artist">
-          {{ featured ? featured.singerName + ' · 编辑精选 · 正在播放' : '从热歌、新歌和直播现场开始，找到你的下一首循环' }}
-        </text>
-        <view class="hero-cta">
-          <view v-if="featured" class="btn-primary" @click.stop="playFeatured">
-            <km-icon name="play" :size="11" color="#2B1A08" />
-            <text>立即播放</text>
+    <!-- ============ 首页轮播图（后台轮播管理） ============ -->
+    <swiper
+      v-if="bannerList.length"
+      class="banner-swiper"
+      circular
+      autoplay
+      :interval="5000"
+      indicator-dots
+      indicator-color="rgba(255,255,255,.35)"
+      indicator-active-color="#f5b45b"
+    >
+      <swiper-item v-for="b in bannerList" :key="b.id">
+        <image class="banner-swiper__img" :src="coverOf(b.imageUrl)" mode="aspectFill" @click="openBanner(b)" />
+      </swiper-item>
+    </swiper>
+
+    <!-- ============ 今日主打（后台可配自动轮播） ============ -->
+    <swiper
+      v-if="heroList.length"
+      class="hero-swiper"
+      :autoplay="heroAuto"
+      :interval="heroIntervalMs"
+      :duration="420"
+      circular
+      @change="onHeroChange"
+    >
+      <swiper-item v-for="(song, i) in heroList" :key="song.songId || song.id || i">
+        <view class="hero" @click="openSong(song)">
+          <image class="hero-bg" :src="coverOf(song.coverUrl)" mode="aspectFill" />
+          <view class="hero-scrim"></view>
+          <view class="hero-top">
+            <text class="tag">今日主打</text>
+            <view v-if="liveRooms.length" class="live-now">
+              <view class="pip"></view>{{ liveRooms.length }} 个现场正在发生
+            </view>
           </view>
-          <text v-if="featured" class="ghost" @click.stop="openSong(featured)">查看详情 ›</text>
-          <text v-else class="ghost" @click.stop="goLive">进入直播广场 ›</text>
+          <view class="hero-copy">
+            <text class="hero-name">{{ song.name }}</text>
+            <text class="hero-artist">{{ song.singerName }} · 编辑精选 · 正在播放</text>
+            <view class="hero-cta">
+              <view class="btn-primary" @click.stop="playFeatured(song)">
+                <km-icon name="play" :size="11" color="#2B1A08" />
+                <text>立即播放</text>
+              </view>
+              <text class="ghost" @click.stop="openSong(song)">查看详情 ›</text>
+            </view>
+          </view>
+          <view class="hero-foot">
+            <text class="b">今日热歌</text>
+            <text class="t">{{ song.singerName }} · 全站热度持续上升</text>
+          </view>
+          <view v-if="heroList.length > 1" class="hero-dots">
+            <view v-for="(s, di) in heroList" :key="di" :class="['hero-dot', { on: di === heroIndex }]"></view>
+          </view>
         </view>
-      </view>
-      <view class="hero-foot">
-        <text class="b">今日热歌</text>
-        <text class="t">{{ featured ? featured.singerName + ' · 全站热度持续上升' : '数据加载中，稍后再看看' }}</text>
+      </swiper-item>
+    </swiper>
+
+    <view v-else class="hero hero-single" @click="goLive">
+      <view class="hero-scrim"></view>
+      <view class="hero-copy">
+        <text class="hero-name">今天想听点什么？</text>
+        <text class="hero-artist">从热歌、新歌和直播现场开始，找到你的下一首循环</text>
+        <view class="hero-cta">
+          <text class="ghost" @click.stop="goLive">进入直播广场 ›</text>
+        </view>
       </view>
     </view>
 
@@ -179,6 +218,7 @@ const { play } = usePlayer()
 const user = ref({})
 const hotSongs = ref([])
 const bannerAd = ref(null)
+const bannerList = ref([])
 const isVip = ref(false)
 const splashAd = ref(null)
 const splashVisible = ref(false)
@@ -202,7 +242,22 @@ const filters = [
   { key: 'live', label: '直播', go: '/pages/live/live', tab: true }
 ]
 
-const featured = computed(() => hotSongs.value[0] || null)
+const featured = computed(() => heroList.value[heroIndex.value] || heroList.value[0] || null)
+
+/* ---- 今日主打轮播（后台「首页设置」可配） ---- */
+const heroSetting = ref({ heroAutoplay: 1, heroInterval: 5, heroCount: 3 })
+const heroIndex = ref(0)
+const heroList = computed(() => {
+  const configured = Array.isArray(heroSetting.value.songs) ? heroSetting.value.songs : []
+  if (configured.length) return configured
+  const count = Math.max(1, Math.min(10, Number(heroSetting.value.heroCount) || 3))
+  return hotSongs.value.slice(0, count)
+})
+const heroAuto = computed(() => Number(heroSetting.value.heroAutoplay) !== 0 && heroList.value.length > 1)
+const heroIntervalMs = computed(() => Math.max(2, Math.min(15, Number(heroSetting.value.heroInterval) || 5)) * 1000)
+function onHeroChange(e) {
+  heroIndex.value = (e && e.detail && e.detail.current) || 0
+}
 const listTitle = computed(() => (filterKey.value === 'new' ? '新歌速递' : filterKey.value === 'rising' ? '飙升榜' : '热门推荐'))
 const listSub = computed(() =>
   filterKey.value === 'new' ? '刚刚发行的好音乐' : filterKey.value === 'rising' ? '热度上升最快' : '按播放量排序'
@@ -272,8 +327,9 @@ function openSong(song) {
   uni.navigateTo({ url: `/pages/song/song?id=${id}` })
 }
 
-function playFeatured() {
-  if (featured.value) play(featured.value, hotSongs.value)
+function playFeatured(song) {
+  const target = song && (song.songId || song.id) ? song : featured.value
+  if (target) play(target, hotSongs.value)
 }
 
 function toggleLike(song) {
@@ -308,15 +364,42 @@ function switchFilter(f) {
 
 let splashShown = false
 
+function openBanner(banner) {
+  const link = (banner?.linkUrl || '').trim()
+  if (!link) return
+  if (/^https?:/i.test(link)) {
+    // #ifdef H5
+    window.open(link, '_blank')
+    // #endif
+    // #ifndef H5
+    uni.setClipboardData({ data: link })
+    uni.showToast({ title: '链接已复制，请在浏览器打开', icon: 'none' })
+    // #endif
+    return
+  }
+  const song = link.match(/^\/song\/(\d+)/)
+  if (song) return uni.navigateTo({ url: `/pages/song/song?id=${song[1]}` })
+  if (link.startsWith('/live')) return uni.switchTab({ url: '/pages/live/live' })
+  if (link.startsWith('/vip')) return uni.switchTab({ url: '/pages/vip/vip' })
+  if (link.startsWith('/mine')) return uni.switchTab({ url: '/pages/mine/mine' })
+  if (link.startsWith('/playlist/')) return uni.navigateTo({ url: `/pages/playlist/detail?id=${link.split('/').pop()}` })
+  uni.navigateTo({ url: link })
+}
+
 async function bootstrap() {
-  const [h, adRes, splashRes, l, vipRes] = await Promise.all([
+  const [h, adRes, splashRes, l, vipRes, settingRes, bannerRes] = await Promise.all([
     api.hot(20).catch(() => null),
     api.adsActive('HOME_BANNER').catch(() => null),
     api.adsActive('SPLASH').catch(() => null),
     api.liveSquare({ pageNum: 1, pageSize: 4 }).catch(() => null),
-    uni.getStorageSync('km_token') ? api.vipStatus().catch(() => null) : Promise.resolve(null)
+    uni.getStorageSync('km_token') ? api.vipStatus().catch(() => null) : Promise.resolve(null),
+    api.homeSettings().catch(() => null),
+    api.banners().catch(() => null)
   ])
+  bannerList.value = (bannerRes && bannerRes.data) || []
   hotSongs.value = (h && h.data) || []
+  if (settingRes && settingRes.data) heroSetting.value = settingRes.data
+  heroIndex.value = 0
   const ads = (adRes && adRes.data) || []
   bannerAd.value = ads.find((a) => a.slot === 'HOME_BANNER') || ads[0] || null
   isVip.value = !!(vipRes && vipRes.data && vipRes.data.vip)
@@ -383,21 +466,39 @@ onShow(() => {
 .badge {
   width: 32rpx; height: 32rpx; border-radius: 9rpx;
   border: 1rpx solid rgba(245, 180, 91, .55);
-  color: #f5b45b; font-size: 16rpx; font-weight: 700;
+  color: var(--km-accent); font-size: 16rpx; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
 
 /* 今日主打 */
-.hero {
-  position: relative;
+.banner-swiper { height: 210rpx; margin: 0 24rpx 20rpx; border-radius: 20rpx; overflow: hidden; }
+.banner-swiper__img { width: 100%; height: 100%; display: block; }
+.hero-swiper {
   margin: 26rpx 36rpx 0;
   height: 300rpx;
+  border-radius: 40rpx;
+  overflow: hidden;
+}
+.hero {
+  position: relative;
+  height: 100%;
   border-radius: 40rpx;
   overflow: hidden;
   background: #14121a;
   border: 1rpx solid rgba(255, 255, 255, .08);
   box-shadow: 0 20rpx 40rpx rgba(0, 0, 0, .5);
 }
+.hero-single { margin: 26rpx 36rpx 0; height: 300rpx; }
+.hero-dots {
+  position: absolute; right: 26rpx; bottom: 56rpx;
+  display: flex; align-items: center; gap: 8rpx;
+}
+.hero-dot {
+  width: 8rpx; height: 8rpx; border-radius: 50%;
+  background: rgba(255, 255, 255, .3);
+  transition: width .25s ease, background .25s ease;
+}
+.hero-dot.on { width: 22rpx; border-radius: 999rpx; background: var(--km-accent); }
 .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero-scrim {
   position: absolute; inset: 0;
@@ -551,6 +652,7 @@ onShow(() => {
   background: linear-gradient(135deg,#fbd08a,#de823c); color: #22150a; font-size: 24rpx; font-weight: 800;
 }
 </style>
+
 
 
 

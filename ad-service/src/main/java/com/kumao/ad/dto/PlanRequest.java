@@ -11,7 +11,7 @@ public class PlanRequest {
 
     @NotNull(message = "素材ID不能为空")
     private Long materialId;
-    /** SPLASH / HOME_BANNER / LIVE / PLAYER */
+    /** SPLASH / HOME_BANNER / LIVE / PLAYER / VIP_REWARD */
     @NotBlank(message = "广告位不能为空")
     private String slot;
     @NotNull(message = "投放开始时间不能为空")

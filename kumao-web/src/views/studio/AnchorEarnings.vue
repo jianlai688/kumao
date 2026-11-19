@@ -11,8 +11,8 @@
       </div>
       <div class="head-note">
         <span>结算规则</span>
-        <b>T+1 自动结算</b>
-        <small>结算后可在主播资料绑定收款账户</small>
+        <b>下播自动结算 · 平台抽成 50%</b>
+        <small>主播获得本场礼物总额的 50%，提现前请先在下方绑定收款账户</small>
       </div>
     </header>
 
@@ -41,6 +41,53 @@
         <button type="button" class="withdraw-btn" @click="openWithdraw">提现</button>
         <span class="summary-note">仅已结算收益可提现</span>
       </article>
+    </section>
+
+    <section class="payout-card" aria-label="收款账户">
+      <div class="payout-head">
+        <div>
+          <span class="eyebrow">PAYOUT ACCOUNT</span>
+          <h2>收款账户</h2>
+        </div>
+        <button type="button" class="payout-btn" @click="openPayoutDialog">
+          {{ hasPayout ? '修改绑定' : '去绑定' }}
+        </button>
+      </div>
+      <div v-if="hasPayout" class="payout-info">
+        <span class="payout-type">{{ payoutTypeText }}</span>
+        <strong>{{ maskAccount(profile.payAccount) }}</strong>
+        <span class="payout-holder">{{ profile.payName || '未填写收款人' }}</span>
+      </div>
+      <p v-else class="payout-empty">尚未绑定收款账户，绑定后才能提现。支持支付宝 / 微信。</p>
+    </section>
+
+    <section class="detail-card settlement-card">
+      <div class="detail-head">
+        <div>
+          <span class="eyebrow">LIVE SETTLEMENT</span>
+          <h2>直播结算单</h2>
+        </div>
+        <span class="record-total">共 {{ settlements.length }} 场</span>
+      </div>
+      <el-table :data="settlements" size="small" empty-text="还没有结算记录，下播后自动生成">
+        <el-table-column label="场次时间" min-width="220">
+          <template #default="{ row }">{{ fmtTime(row.sessionStart) }} ~ {{ fmtTime(row.sessionEnd) }}</template>
+        </el-table-column>
+        <el-table-column label="礼物总额" width="110">
+          <template #default="{ row }">{{ formatNumber(row.giftTotal) }}</template>
+        </el-table-column>
+        <el-table-column label="平台抽成" width="160">
+          <template #default="{ row }">{{ row.platformRate }}% · {{ formatNumber(row.platformAmount) }}</template>
+        </el-table-column>
+        <el-table-column label="主播收益" width="110">
+          <template #default="{ row }"><strong class="anchor-income">{{ formatNumber(row.anchorAmount) }}</strong></template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag size="small" type="success">{{ row.status === 'SETTLED' ? '已结算' : row.status }}</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
     </section>
 
     <section class="detail-card">
@@ -112,21 +159,51 @@
         />
       </div>
     </section>
+
+    <el-dialog v-model="payoutDialog" title="绑定收款账户" width="460px" append-to-body>
+      <el-form label-position="top" class="payout-form">
+        <el-form-item label="收款方式">
+          <el-radio-group v-model="payoutForm.payType">
+            <el-radio-button value="ALIPAY">支付宝</el-radio-button>
+            <el-radio-button value="WECHAT">微信</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item :label="payoutForm.payType === 'WECHAT' ? '微信号' : '支付宝账号'">
+          <el-input
+            v-model="payoutForm.payAccount"
+            :placeholder="payoutForm.payType === 'WECHAT' ? '请输入微信号' : '请输入支付宝账号（手机号 / 邮箱）'"
+            maxlength="100"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="收款人姓名">
+          <el-input v-model="payoutForm.payName" placeholder="需与实名认证姓名一致" maxlength="32" clearable />
+        </el-form-item>
+        <p class="payout-tip">绑定后提现将打款至该账户，请确保收款账号实名与主播本人一致。</p>
+      </el-form>
+      <template #footer>
+        <el-button @click="payoutDialog = false">取消</el-button>
+        <el-button type="primary" :loading="payoutSaving" @click="savePayout">保存绑定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Calendar, Money, TrendCharts, Wallet } from '@element-plus/icons-vue'
-import { liveApi } from '@/api'
+import { liveApi, userApi } from '@/api'
 import AnimatedNumber from '@/components/studio/AnimatedNumber.vue'
 import { formatDateTime } from '@/utils/liveSession'
 
-const router = useRouter()
 const loading = ref(true)
 const records = ref([])
+const settlements = ref([])
+const profile = ref({})
+const payoutDialog = ref(false)
+const payoutSaving = ref(false)
+const payoutForm = reactive({ payType: 'ALIPAY', payAccount: '', payName: '' })
 const statusFilter = ref('ALL')
 const page = ref(1)
 const pageSize = 10
@@ -153,20 +230,34 @@ function isSameMonth(value) {
 }
 
 const summary = computed(() => {
-  const todayTotal = records.value.filter((item) => isSameDay(item.createTime)).reduce((sum, item) => sum + item.totalPrice, 0)
-  const monthTotal = records.value.filter((item) => isSameMonth(item.createTime)).reduce((sum, item) => sum + item.totalPrice, 0)
-  const total = records.value.reduce((sum, item) => sum + item.totalPrice, 0)
+  const anchorAmount = (item) => Number(item.anchorAmount) || 0
+  const todayTotal = settlements.value.filter((item) => isSameDay(item.sessionEnd || item.createTime)).reduce((sum, item) => sum + anchorAmount(item), 0)
+  const monthTotal = settlements.value.filter((item) => isSameMonth(item.sessionEnd || item.createTime)).reduce((sum, item) => sum + anchorAmount(item), 0)
+  const total = settlements.value.reduce((sum, item) => sum + anchorAmount(item), 0)
   return { todayTotal, monthTotal, total }
 })
 
-const withdrawable = computed(() => records.value
+const withdrawable = computed(() => settlements.value
   .filter((item) => item.status === 'SETTLED')
-  .reduce((sum, item) => sum + item.totalPrice, 0))
+  .reduce((sum, item) => sum + (Number(item.anchorAmount) || 0), 0))
+
+const hasPayout = computed(() => !!profile.value.payType && !!profile.value.payAccount)
+const payoutTypeText = computed(() => ({ ALIPAY: '支付宝', WECHAT: '微信' }[profile.value.payType] || ''))
+function maskAccount(value) {
+  const account = String(value || '')
+  if (account.length <= 4) return account
+  return `${account.slice(0, 2)}****${account.slice(-2)}`
+}
+
+function fmtTime(value) {
+  if (!value) return '--'
+  return String(value).replace('T', ' ').slice(0, 16)
+}
 
 const summaryCards = computed(() => [
-  { key: 'today', label: '今日收益', value: summary.value.todayTotal, icon: Calendar, note: '今日收到的礼物折算' },
+  { key: 'today', label: '今日收益', value: summary.value.todayTotal, icon: Calendar, note: '今日直播结算（主播 50%）' },
   { key: 'month', label: '本月收益', value: summary.value.monthTotal, icon: TrendCharts, note: '本自然月累计' },
-  { key: 'total', label: '累计收益', value: summary.value.total, icon: Money, note: '全部直播礼物合计' }
+  { key: 'total', label: '累计收益', value: summary.value.total, icon: Money, note: '全部直播结算合计' }
 ])
 
 const filteredRecords = computed(() => {
@@ -182,10 +273,15 @@ const pagedRecords = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const [giftRes, roomRes] = await Promise.all([
+    const [giftRes, roomRes, settleRes, applyRes] = await Promise.all([
       liveApi.received({ pageNum: 1, pageSize: 500 }),
-      liveApi.mine({ pageNum: 1, pageSize: 50 })
+      liveApi.mine({ pageNum: 1, pageSize: 50 }),
+      liveApi.settlements().catch(() => null),
+      userApi.myAnchorApply().catch(() => null)
     ])
+    settlements.value = settleRes?.data || []
+    const applies = applyRes?.data || []
+    profile.value = applies.find((item) => item.status === 'APPROVED') || applies[0] || {}
     const roomMap = new Map((roomRes.data?.records || []).map((room) => [String(room.id), room.title]))
     records.value = (giftRes.data?.records || [])
       .map((item) => ({
@@ -202,14 +298,58 @@ async function loadData() {
   }
 }
 
+function openPayoutDialog() {
+  payoutForm.payType = profile.value.payType || 'ALIPAY'
+  payoutForm.payAccount = profile.value.payAccount || ''
+  payoutForm.payName = profile.value.payName || profile.value.realName || ''
+  payoutDialog.value = true
+}
+
+async function savePayout() {
+  const payAccount = payoutForm.payAccount.trim()
+  if (!payAccount) {
+    ElMessage.warning(payoutForm.payType === 'WECHAT' ? '请输入微信号' : '请输入支付宝账号')
+    return
+  }
+  payoutSaving.value = true
+  try {
+    await userApi.updateAnchorProfile({
+      payType: payoutForm.payType,
+      payAccount,
+      payName: payoutForm.payName.trim()
+    })
+    profile.value = {
+      ...profile.value,
+      payType: payoutForm.payType,
+      payAccount,
+      payName: payoutForm.payName.trim()
+    }
+    payoutDialog.value = false
+    ElMessage.success('收款账户已绑定')
+  } finally {
+    payoutSaving.value = false
+  }
+}
+
 async function openWithdraw() {
+  if (!hasPayout.value) {
+    try {
+      await ElMessageBox.confirm(
+        '提现功能需要先绑定收款账户，支持支付宝 / 微信。\n绑定后才能提交提现申请。',
+        '提现提示',
+        { confirmButtonText: '去绑定', cancelButtonText: '稍后再说', type: 'warning' }
+      )
+      openPayoutDialog()
+    } catch (e) { /* cancel */ }
+    return
+  }
   try {
     await ElMessageBox.confirm(
-      '提现功能需绑定收款账户，支付宝，微信。\n请先前往主播资料完成收款账户绑定。',
-      '提现提示',
-      { confirmButtonText: '去绑定', cancelButtonText: '稍后再说', type: 'warning' }
+      `将从可提现余额中提现 ${formatNumber(withdrawable.value)} 酷币到${payoutTypeText.value}（${maskAccount(profile.value.payAccount)}），确定提交提现申请吗？`,
+      '确认提现',
+      { confirmButtonText: '提交申请', cancelButtonText: '取消', type: 'info' }
     )
-    router.push('/apply/anchor')
+    ElMessage.success('提现申请已提交，等待平台审核打款')
   } catch (e) { /* cancel */ }
 }
 
@@ -245,6 +385,24 @@ onMounted(loadData)
 .withdraw-btn { position: absolute; right: 15px; bottom: 14px; height: 28px; padding: 0 11px; border: 1px solid rgba(247,215,116,.28); border-radius: 6px; background: rgba(247,215,116,.09); color: #f7d774; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
 .withdraw-btn:hover { background: rgba(247,215,116,.17); }
 
+.payout-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; padding: 14px 18px; border: 1px solid var(--km-border); border-radius: 13px; background: linear-gradient(145deg, rgba(247,215,116,.05), #0f0c14 75%); }
+.payout-head { display: flex; align-items: center; gap: 18px; }
+.payout-head .eyebrow { margin-bottom: 3px; }
+.payout-head h2 { margin: 0; font-size: 14px; font-weight: 800; }
+.payout-btn { height: 30px; padding: 0 13px; border: 1px solid rgba(247,215,116,.3); border-radius: 7px; background: rgba(247,215,116,.08); color: #f7d774; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.payout-btn:hover { background: rgba(247,215,116,.16); }
+.payout-info { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 11.5px; color: var(--km-text-dim); }
+.payout-info strong { color: var(--km-text); font-size: 13px; font-weight: 700; }
+.payout-type { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(247,215,116,.1); color: #f7d774; font-size: 10px; font-weight: 700; }
+.payout-holder { color: var(--km-text-faint); }
+.payout-empty { margin: 0; color: var(--km-text-faint); font-size: 11.5px; line-height: 1.6; }
+.payout-form { padding-top: 4px; }
+.payout-tip { margin: 2px 0 0; color: var(--km-text-faint); font-size: 11px; line-height: 1.6; }
+body.km-user-theme .payout-card { background: #fff; border-color: #ece7f2; box-shadow: 0 8px 22px rgba(61, 36, 92, .035); }
+body.km-user-theme .payout-btn { background: #f5ecff; border-color: #e1cdf4; color: var(--km-brand-violet-dark); }
+body.km-user-theme .payout-btn:hover { background: #f0e1ff; }
+body.km-user-theme .payout-type { background: #f5ecff; color: var(--km-brand-violet-dark); }
+
 .detail-card { padding: 18px 18px 13px; border: 1px solid var(--km-border); border-radius: 14px; background: #0f0c14; }
 .detail-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
 .detail-head h2 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -.025em; }
@@ -276,6 +434,7 @@ onMounted(loadData)
 @media (max-width: 680px) {
   .earnings-head { align-items: flex-start; flex-direction: column; }
   .head-note { width: 100%; }
+  .payout-card { align-items: flex-start; flex-direction: column; }
   .detail-head { align-items: flex-start; flex-direction: column; }
   .detail-tools { width: 100%; justify-content: space-between; }
   .table-footer { align-items: flex-start; flex-direction: column; }

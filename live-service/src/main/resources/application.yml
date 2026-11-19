@@ -17,7 +17,7 @@ spring:
         config:
           review-service:
             connect-timeout: 800
-            read-timeout: 1200
+            read-timeout: 8000
           user-service:
             connect-timeout: 800
             read-timeout: 1200
@@ -47,7 +47,6 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 kumao:
   moderation:
-    mute-minutes: ${MODERATION_MUTE_MINUTES:60}
     reject-risk-score: ${MODERATION_REJECT_RISK:35}
   srs:
     # SRS 推流服务地址
@@ -63,6 +62,21 @@ kumao:
     # SRS HTTP API，用于轮询活跃流并经 WebSocket 推送开播/断流状态
     api-url: ${SRS_API_URL:http://127.0.0.1:1985}
     status-interval-ms: ${SRS_STATUS_INTERVAL_MS:3000}
+  live:
+    autopush:
+      # 开播时若 SRS 没有现成推流，自动用 ffmpeg 生成演示画面
+      enabled: ${LIVE_AUTOPUSH_ENABLED:true}
+      ffmpeg: ${LIVE_AUTOPUSH_FFMPEG:ffmpeg}
+      width: ${LIVE_AUTOPUSH_WIDTH:1280}
+      height: ${LIVE_AUTOPUSH_HEIGHT:720}
+      fps: ${LIVE_AUTOPUSH_FPS:25}
+      bitrate: ${LIVE_AUTOPUSH_BITRATE:1800k}
+  obs:
+    # OBS WebSocket，供主播控制台自动填充电台/密码
+    websocket-url: ${OBS_WEBSOCKET_URL:ws://127.0.0.1:4455}
+    password: ${OBS_WEBSOCKET_PASSWORD:}
+    # 可选：显式指定 OBS obs-websocket/config.json 路径；留空自动读取 %APPDATA% 或 ~/.config
+    config-path: ${OBS_WEBSOCKET_CONFIG:}
   danmaku:
     # 敏感词（逗号分隔，演示用）
     sensitive-words: 广告,加微信,加QQ,私聊,赌博,色情,诈骗,代购,刷礼物

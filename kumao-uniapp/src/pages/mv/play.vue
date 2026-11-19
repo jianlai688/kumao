@@ -374,14 +374,14 @@ onLoad(async (options) => {
 .dot { color: rgba(247, 241, 232, .22); font-size: 20rpx; }
 .plays { font-size: 21rpx; color: rgba(247, 241, 232, .38); }
 .q {
-  margin-left: 4rpx; font-size: 16rpx; color: #f5b45b;
+  margin-left: 4rpx; font-size: 16rpx; color: var(--km-accent);
   border: 1rpx solid rgba(245, 180, 91, .3); border-radius: 6rpx; padding: 1rpx 8rpx;
 }
 
 .actions { display: flex; align-items: center; gap: 54rpx; margin-top: 28rpx; }
 .act { display: flex; align-items: center; gap: 10rpx; }
 .at { font-size: 21rpx; color: rgba(247, 241, 232, .5); }
-.at.on { color: #f5b45b; }
+.at.on { color: var(--km-accent); }
 
 .desc { margin-top: 28rpx; padding: 24rpx; border-radius: 26rpx; background: #121116; border: 1rpx solid rgba(255, 255, 255, .06); }
 .desc-t { font-size: 21rpx; color: rgba(247, 241, 232, .5); font-weight: 700; }
@@ -440,14 +440,15 @@ onLoad(async (options) => {
 }
 .ctl-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 20rpx 24rpx 18rpx; background: linear-gradient(0deg, rgba(0,0,0,.7), transparent); }
 .ctl-track { position: relative; height: 6rpx; border-radius: 999rpx; background: rgba(255,255,255,.24); }
-.ctl-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999rpx; background: #f5b45b; }
-.ctl-dot { position: absolute; top: 50%; width: 16rpx; height: 16rpx; margin-left: -8rpx; border-radius: 50%; background: #f5b45b; transform: translateY(-50%); }
+.ctl-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999rpx; background: var(--km-accent); }
+.ctl-dot { position: absolute; top: 50%; width: 16rpx; height: 16rpx; margin-left: -8rpx; border-radius: 50%; background: var(--km-accent); transform: translateY(-50%); }
 .ctl-row { display: flex; align-items: center; gap: 10rpx; margin-top: 14rpx; }
 .ctl-time { font-size: 20rpx; color: rgba(255,255,255,.72); }
 .ctl-spacer { flex: 1; }
 .ctl-btn { padding: 6rpx 14rpx; border-radius: 999rpx; background: rgba(255,255,255,.12); }
 .ctl-fs { font-size: 20rpx; color: #fff; }
 </style>
+
 
 
 

@@ -18,4 +18,12 @@ public class LiveDanmaku extends BaseEntity {
     private Boolean vip;
     /** TEXT / GIFT / SYSTEM / ENTRANCE */
     private String type;
+    /** 0 已通过 1 已驳回/屏蔽 2 待管理员复核 */
+    private Integer status;
+    /** PASS / REVIEW / REJECT */
+    private String aiDecision;
+    private Integer aiRiskScore;
+    /** AI_MODEL / LOCAL_RULE / UNAVAILABLE */
+    private String aiSource;
+    private String aiReasons;
 }

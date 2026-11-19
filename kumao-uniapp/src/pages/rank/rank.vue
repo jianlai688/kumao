@@ -111,11 +111,12 @@ onMounted(load)
   border-color: rgba(245, 180, 91, .3);
 }
 .tn { font-size: 25rpx; font-weight: 800; color: rgba(247, 241, 232, .7); }
-.tab.on .tn { color: #f5b45b; }
+.tab.on .tn { color: var(--km-accent); }
 .td { font-size: 17rpx; color: rgba(247, 241, 232, .3); }
 .date { display: block; margin-top: 18rpx; font-size: 19rpx; color: rgba(247, 241, 232, .28); }
 .list { padding: 10rpx 28rpx 0; }
 .tip { text-align: center; font-size: 18rpx; color: rgba(247, 241, 232, .2); margin-top: 20rpx; }
 </style>
+
 
 

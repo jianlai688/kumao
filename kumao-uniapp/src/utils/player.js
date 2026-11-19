@@ -40,6 +40,15 @@ function ctx() {
 
 export function play(song, list) {
   if (!song) return
+  // 单曲付费：未购买时先跳转详情页购买，避免从列表直接播放
+  if (Number(song.price) > 0) {
+    const owned = (uni.getStorageSync('km_owned_songs') || []).map(String)
+    if (!owned.includes(String(songId(song)))) {
+      uni.showToast({ title: '付费单曲，请先购买', icon: 'none' })
+      uni.navigateTo({ url: `/pages/song/song?id=${songId(song)}` })
+      return
+    }
+  }
   if (Array.isArray(list) && list.length) {
     state.queue = list
     const idx = list.findIndex((s) => songId(s) === songId(song))

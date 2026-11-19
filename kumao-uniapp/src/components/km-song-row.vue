@@ -54,7 +54,7 @@ function onLike() {
   font-style: italic;
   color: rgba(247, 241, 232, .22);
 }
-.no.top { color: #f5b45b; }
+.no.top { color: var(--km-accent); }
 .cv {
   width: 68rpx;
   height: 68rpx;
@@ -79,7 +79,7 @@ function onLike() {
   padding: 2rpx 8rpx;
   border-radius: 6rpx;
   background: rgba(245, 180, 91, .16);
-  color: #f5b45b;
+  color: var(--km-accent);
   font-weight: 700;
 }
 .sub {
@@ -92,5 +92,6 @@ function onLike() {
 .dot { color: rgba(247, 241, 232, .2); }
 .heart { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; }
 </style>
+
 
 

@@ -54,6 +54,12 @@ public class AdController {
 
     // ---------------- 工作台：素材 ----------------
 
+    @PutMapping("/mine")
+    public R<Void> updateMine(@RequestBody com.kumao.ad.dto.AdvertiserProfileRequest req) {
+        adService.updateMyProfile(UserContext.requireUserId(), req);
+        return R.ok();
+    }
+
     @GetMapping("/materials")
     public R<PageResult<AdMaterial>> materials(PageQuery query,
                                                @RequestParam(required = false) String status) {
@@ -88,6 +94,19 @@ public class AdController {
     @GetMapping("/pricing")
     public R<List<Map<String, Object>>> pricing() {
         return R.ok(adService.pricing());
+    }
+
+    @GetMapping("/admin/pricing")
+    public R<List<Map<String, Object>>> adminPricing() {
+        UserContext.requireAdmin();
+        return R.ok(adService.pricing());
+    }
+
+    @PutMapping("/admin/pricing")
+    public R<Void> updatePricing(@RequestBody List<AdSlotPrice> prices) {
+        UserContext.requireAdmin();
+        adService.updatePricing(prices);
+        return R.ok();
     }
 
     @GetMapping("/plans")
@@ -182,6 +201,14 @@ public class AdController {
                              @RequestParam(required = false) String reason) {
         UserContext.requireAdmin();
         adService.auditPlan(id, approved, reason);
+        return R.ok();
+    }
+
+    /** 管理员对投放中的计划执行暂停 / 续投 / 终止 */
+    @PostMapping("/admin/plans/{id}/action")
+    public R<Void> adminPlanAction(@PathVariable Long id, @RequestParam String action) {
+        UserContext.requireAdmin();
+        adService.adminUpdatePlanStatus(id, action);
         return R.ok();
     }
 

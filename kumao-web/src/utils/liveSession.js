@@ -118,7 +118,7 @@ function buildAudience(seed) {
   return { gender, age, region }
 }
 
-export function buildLiveReport({ room, sessionId, startTime, endTime, metrics }) {
+export function buildLiveReport({ room, sessionId, startTime, endTime, metrics, audience = null }) {
   const startMs = new Date(startTime).getTime()
   const endMs = new Date(endTime).getTime()
   const durationSeconds = Math.max(1, Math.round((endMs - startMs) / 1000))
@@ -150,7 +150,7 @@ export function buildLiveReport({ room, sessionId, startTime, endTime, metrics }
     },
     onlineSeries: buildOnlineSeries(startMs, durationSeconds, peakOnline, seed),
     giftMinutes: buildGiftMinutes(giftIncome, seed, startMs, durationSeconds),
-    audience: buildAudience(seed),
+    audience: audience || buildAudience(seed),
     settlement: {
       status: 'PENDING',
       label: '待结算（T+1）',

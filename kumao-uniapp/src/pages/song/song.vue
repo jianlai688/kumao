@@ -49,6 +49,18 @@
         <view :class="['chip', { on: playerState.sleepAt > 0 }]" @click="sleepOpen = true">{{ sleepLabel }}</view>
       </view>
 
+      <!-- 单曲付费 -->
+      <view v-if="locked" class="paywall">
+        <view class="pw-copy">
+          <text class="pw-tag">单曲付费</text>
+          <text class="pw-title">购买后即可完整播放</text>
+          <text class="pw-sub">¥{{ priceText }} · 一次购买，永久可听</text>
+        </view>
+        <view :class="['pw-btn', { busy: purchasing }]" @click="buySong">
+          {{ purchasing ? '购买中…' : '¥' + priceText + ' 购买单曲' }}
+        </view>
+      </view>
+
       <view class="actions">
         <view class="act" @click="openSimilar">
           <km-icon name="search" :size="19" color="rgba(247,241,232,.8)" />
@@ -99,7 +111,7 @@
         <view class="side" @click="prev">
           <km-icon name="prev" :size="22" color="rgba(247,241,232,.86)" />
         </view>
-        <view class="play-btn" @click="toggle">
+        <view class="play-btn" @click="onToggle">
           <km-icon :name="playerState.playing ? 'pause' : 'play'" :size="22" color="#2B1A08" />
         </view>
         <view class="side" @click="next">
@@ -242,6 +254,8 @@ const activeIndex = ref(0)
 const liked = ref(false)
 const followed = ref(false)
 const vipUser = ref(false)
+const payInfo = ref({ price: 0, owned: true })
+const purchasing = ref(false)
 const playAd = ref(null)
 const playAdOpen = ref(false)
 const commentCount = ref(0)
@@ -294,6 +308,8 @@ const listeners = computed(() => {
 })
 const likeText = computed(() => formatPlay(song.value.likeCount || song.value.playCount / 50))
 const commentText = computed(() => (commentCount.value ? formatCount(commentCount.value) : '—'))
+const locked = computed(() => Number(payInfo.value.price) > 0 && !payInfo.value.owned)
+const priceText = computed(() => (Number(payInfo.value.price || 0) / 100).toFixed(2))
 
 const currentLine = computed(() => {
   const l = lyric.value[activeIndex.value]
@@ -317,6 +333,44 @@ watch(
     activeIndex.value = idx
   }
 )
+
+function onToggle() {
+  if (locked.value) {
+    uni.showToast({ title: '购买单曲后才能播放', icon: 'none' })
+    return
+  }
+  toggle()
+}
+
+function markOwned(id) {
+  const list = (uni.getStorageSync('km_owned_songs') || []).map(String)
+  if (!list.includes(String(id))) {
+    list.push(String(id))
+    uni.setStorageSync('km_owned_songs', list)
+  }
+}
+
+async function buySong() {
+  if (purchasing.value) return
+  if (!uni.getStorageSync('km_token')) {
+    uni.navigateTo({ url: '/pages/login/login' })
+    return
+  }
+  purchasing.value = true
+  try {
+    const res = await api.purchaseSong(song.value.songId || song.value.id)
+    if (!res || res.code !== 200) throw new Error('购买失败')
+    payInfo.value = { ...payInfo.value, owned: true }
+    markOwned(song.value.songId || song.value.id)
+    uni.showToast({ title: '购买成功，已解锁', icon: 'none' })
+    const queue = uni.getStorageSync('km_queue')
+    play(song.value, Array.isArray(queue) && queue.length ? queue : null)
+  } catch (e) {
+    uni.showToast({ title: (e && e.message) || '购买失败，请重试', icon: 'none' })
+  } finally {
+    purchasing.value = false
+  }
+}
 
 function back() {
   const pages = getCurrentPages()
@@ -537,18 +591,21 @@ onLoad(async (options) => {
   const cached = uni.getStorageSync('km_current_song')
   if (cached && (cached.songId || cached.id) == id) song.value = cached
 
-  const [detail, lyr] = await Promise.all([
+  const [detail, lyr, pay] = await Promise.all([
     api.song(id).catch(() => null),
-    api.lyric(id).catch(() => null)
+    api.lyric(id).catch(() => null),
+    api.songPurchaseStatus(id).catch(() => null)
   ])
   if (detail && detail.data) song.value = detail.data
+  if (pay && pay.data) payInfo.value = { price: Number(pay.data.price || 0), owned: !!pay.data.owned }
+  if (payInfo.value.owned && payInfo.value.price > 0) markOwned(id)
   const rawLines = (lyr && lyr.data) || []
   const real = rawLines.filter((l) => l && l.text && !/^(作词|作曲|编曲|制作人|混音|录音|监制|出品|母带)[:：]/.test(l.text))
   lyric.value = real.length ? real : rawLines
 
   const current = playerState.song
   const same = current && (current.songId || current.id) == id
-  if (!same || !playerState.playing) {
+  if ((!same || !playerState.playing) && !locked.value) {
     const queue = uni.getStorageSync('km_queue')
     play(song.value, Array.isArray(queue) && queue.length ? queue : null)
   }
@@ -636,7 +693,7 @@ onLoad(async (options) => {
 .line1 { display: flex; align-items: center; gap: 16rpx; }
 .bar {
   width: 4rpx; height: 34rpx; border-radius: 4rpx;
-  background: linear-gradient(180deg, #f5b45b, rgba(245, 180, 91, .2));
+  background: linear-gradient(180deg, var(--km-accent), rgba(245, 180, 91, .2));
   flex-shrink: 0;
 }
 .l1 {
@@ -660,11 +717,27 @@ onLoad(async (options) => {
 }
 .sub { font-size: 22rpx; color: rgba(247, 241, 232, .46); padding-bottom: 8rpx; }
 .meta-row { margin-top: 18rpx; display: flex; align-items: center; gap: 12rpx; }
+.paywall {
+  margin-top: 18rpx; padding: 20rpx 22rpx; border-radius: 20rpx;
+  display: flex; align-items: center; gap: 18rpx;
+  background: linear-gradient(135deg, rgba(245,180,91,.16), rgba(224,139,62,.06));
+  border: 1rpx solid rgba(245,180,91,.28);
+}
+.pw-copy { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.pw-tag { font-size: 18rpx; color: var(--km-accent); letter-spacing: 1rpx; }
+.pw-title { font-size: 24rpx; color: #f7f1e8; font-weight: 700; }
+.pw-sub { font-size: 18rpx; color: rgba(247,241,232,.5); }
+.pw-btn {
+  flex: none; padding: 16rpx 24rpx; border-radius: 999rpx;
+  background: linear-gradient(140deg,#fbd08a,#e08b3e); color: #2b1a08;
+  font-size: 22rpx; font-weight: 800;
+}
+.pw-btn.busy { opacity: .6; }
 .artist { font-size: 22rpx; color: rgba(247, 241, 232, .62); }
 .follow {
   height: 38rpx; padding: 0 16rpx; border-radius: 999rpx;
   border: 1rpx solid rgba(245, 180, 91, .5);
-  color: #f5b45b; font-size: 17rpx; font-weight: 600;
+  color: var(--km-accent); font-size: 17rpx; font-weight: 600;
   display: flex; align-items: center;
 }
 .follow.on { background: rgba(245, 180, 91, .16); }
@@ -676,7 +749,7 @@ onLoad(async (options) => {
   font-size: 17rpx;
   display: flex; align-items: center;
 }
-.chip.on { color: #f5b45b; background: rgba(245, 180, 91, .14); }
+.chip.on { color: var(--km-accent); background: rgba(245, 180, 91, .14); }
 
 .actions { margin-top: 34rpx; display: flex; align-items: center; justify-content: space-between; }
 .act { display: flex; align-items: center; gap: 8rpx; }
@@ -730,7 +803,7 @@ onLoad(async (options) => {
 .panel-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
 .panel-name { font-size: 25rpx; color: #f3f4f6; }
 .panel-desc { font-size: 20rpx; color: rgba(247,241,232,.34); }
-.panel-vip { font-size: 17rpx; font-weight: 800; color: #f5b45b; border: 1rpx solid rgba(245,180,91,.4); border-radius: 6rpx; padding: 2rpx 8rpx; }
+.panel-vip { font-size: 17rpx; font-weight: 800; color: var(--km-accent); border: 1rpx solid rgba(245,180,91,.4); border-radius: 6rpx; padding: 2rpx 8rpx; }
 .panel-cancel {
   margin-top: 18rpx; height: 88rpx; line-height: 88rpx; text-align: center;
   border-radius: 16rpx; background: rgba(255,255,255,.06); color: rgba(247,241,232,.62); font-size: 25rpx;
@@ -758,6 +831,7 @@ onLoad(async (options) => {
 .pa-name { font-size: 22rpx; color: #f3f4f6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pa-cta { flex: none; padding: 8rpx 16rpx; border-radius: 999rpx; background: linear-gradient(135deg,#fbd08a,#de823c); color: #22150a; font-size: 18rpx; font-weight: 800; }
 </style>
+
 
 
 

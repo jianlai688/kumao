@@ -47,6 +47,12 @@ public class UserController {
         return R.ok(userService.submitAnchorApply(UserContext.requireUserId(), req));
     }
 
+    @PutMapping("/anchor/profile")
+    public R<Void> updateAnchorProfile(@RequestBody com.kumao.user.dto.AnchorProfileRequest req) {
+        userService.updateAnchorProfile(UserContext.requireUserId(), req);
+        return R.ok();
+    }
+
     @GetMapping("/anchor/my")
     public R<List<AnchorApply>> myAnchorApply() {
         return R.ok(userService.myAnchorApplies(UserContext.requireUserId()));
@@ -103,3 +109,4 @@ public class UserController {
         return R.ok();
     }
 }
+

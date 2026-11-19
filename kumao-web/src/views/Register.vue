@@ -14,9 +14,9 @@
       </div>
 
       <ul class="brand-points">
-        <li><span class="p-ico">🎧</span><div><b>千万级曲库</b><em>无损音质 · 随心畅听</em></div></li>
-        <li><span class="p-ico">💚</span><div><b>智能推荐</b><em>越听越懂你的口味</em></div></li>
-        <li><span class="p-ico">🎤</span><div><b>创作者计划</b><em>上传作品，开启音乐人之路</em></div></li>
+        <li><span class="p-ico"><el-icon><Headset /></el-icon></span><div><b>千万级曲库</b><em>无损音质 · 随心畅听</em></div></li>
+        <li><span class="p-ico"><el-icon><Star /></el-icon></span><div><b>智能推荐</b><em>越听越懂你的口味</em></div></li>
+        <li><span class="p-ico"><el-icon><Microphone /></el-icon></span><div><b>创作者计划</b><em>上传作品，开启音乐人之路</em></div></li>
       </ul>
 
       <div class="brand-discs">
@@ -89,7 +89,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Iphone } from '@element-plus/icons-vue'
+import { User, Lock, Iphone, Headset, Star, Microphone } from '@element-plus/icons-vue'
 import { authApi } from '@/api'
 
 const router = useRouter()
@@ -342,9 +342,84 @@ async function submit() {
 .link.dim { color: var(--km-text-dim); font-weight: 400; }
 .link.dim:hover { color: var(--km-text); }
 
+/* 浅色品牌注册页 */
+.register-page { background: var(--km-bg); }
+.brand-side {
+  background:
+    radial-gradient(920px 620px at 12% 16%, rgba(235, 180, 255, .24), transparent 58%),
+    linear-gradient(145deg, #2c0d5c 0%, #58177f 50%, #8b1e89 100%);
+  border-right: 0;
+  padding: 48px 56px;
+}
+.brand-glow { background: radial-gradient(circle at 54% 48%, transparent 32%, rgba(16, 4, 31, .26)); }
+.logo-mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff4fe;
+  border: 1px solid rgba(255, 255, 255, .4);
+  color: #bd3ecf;
+  font-size: 21px;
+  font-weight: 700;
+  filter: none;
+}
+.logo-name { background: none; color: #fff; -webkit-text-fill-color: #fff; }
+.brand-copy h1 { color: #fff; }
+.hl { background: none; color: #f2c8ff; -webkit-text-fill-color: #f2c8ff; }
+.brand-copy p { color: rgba(255, 255, 255, .68); }
+.brand-points b { color: #fff; }
+.brand-points em { color: rgba(255, 255, 255, .56); }
+.p-ico { background: rgba(255, 255, 255, .10); border-color: rgba(255, 255, 255, .16); color: #f1c8ff; font-size: 18px; }
+.d { border-color: rgba(255, 255, 255, .12); }
+
+.form-side { background: var(--km-bg); }
+.register-box {
+  max-width: 438px;
+  padding: 32px 36px 28px;
+  border: 1px solid #ece7f2;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 20px 52px rgba(61, 36, 92, .08);
+}
+.box-head h2 { color: var(--km-text); font-size: 25px; font-weight: 700; letter-spacing: -.04em; }
+.box-head p { color: var(--km-text-faint); }
+.seg { background: #f7f3fb; border-color: #eee8f4; border-radius: 10px; margin-bottom: 22px; }
+.seg-btn { height: 34px; border-radius: 7px; color: var(--km-text-dim); font-size: 12.5px; font-weight: 500; }
+.seg-btn.active { background: #f3eaff; border: 1px solid #e1cdf4; color: var(--km-brand-violet-dark); font-weight: 600; box-shadow: none; }
+.f-label { color: #4f4759; font-size: 12.5px; }
+.form-body :deep(.el-input__wrapper) { height: 44px; margin-bottom: 16px; border-radius: 9px !important; }
+.sms-btn {
+  height: 44px;
+  border-radius: 9px;
+  border-color: #e1cdf4;
+  background: #f8f1ff;
+  color: var(--km-brand-violet-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sms-btn:hover:not(:disabled) { background: #f0e1ff; color: var(--km-brand-violet-dark); }
+.agree { color: var(--km-text-dim); }
+.submit-btn {
+  height: 46px;
+  margin-top: 18px;
+  border-radius: 10px;
+  background: var(--km-grad);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  box-shadow: 0 8px 20px rgba(153, 45, 190, .18);
+}
+.submit-btn:hover:not(:disabled) { background: var(--km-grad); filter: brightness(1.05); box-shadow: 0 12px 28px rgba(153, 45, 190, .24); }
+.bottom-row { color: var(--km-text-dim); font-size: 12px; }
+.link { color: var(--km-brand-violet); }
+
 @media (max-width: 1024px) {
   .register-page { grid-template-columns: 1fr; }
   .brand-side { display: none; }
-  .form-side { padding: 32px 20px; }
+  .form-side { padding: 24px 16px; }
+  .register-box { padding: 26px 22px 22px; }
 }
 </style>

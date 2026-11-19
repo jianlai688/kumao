@@ -4,10 +4,11 @@
     <div class="wb-hero">
       <div class="hero-glow"></div>
       <div class="wb-left">
-        <span class="wb-emoji">🎙️</span>
+        <span class="wb-emoji" aria-hidden="true"><el-icon><Microphone /></el-icon></span>
         <div class="wb-copy">
           <div class="wb-eyebrow">LIVE STUDIO</div>
           <h1 class="wb-title">主播工作台</h1>
+          <button class="button button-quiet" style="margin-top:8px" @click="profileOpen = true">编辑主播资料</button>
           <div class="wb-tags">
             <span class="status-pill ok">已认证主播</span>
             <span class="km-faint">{{ rooms.length }} 个直播间 · {{ formatNum(summary.totalIncome || 0) }} 礼物收益</span>
@@ -233,6 +234,7 @@
       </div>
     </el-dialog>
   </div>
+    <RoleProfileDialog v-model="profileOpen" type="anchor" :record="anchorProfile" @saved="loadAnchorProfile" />
 </template>
 
 <script setup>
@@ -240,13 +242,14 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowRight, Monitor, Plus, TopRight, VideoCamera, View } from '@element-plus/icons-vue'
-import { liveApi, fileApi } from '@/api'
+import { liveApi, fileApi, userApi } from '@/api'
+import RoleProfileDialog from '@/components/RoleProfileDialog.vue'
 import LiveStreamPreview from '@/components/studio/LiveStreamPreview.vue'
 
 const route = useRoute()
 
 const fallbackCover = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22252c"/><stop offset="1" stop-color="#101114"/></linearGradient></defs><rect width="480" height="300" fill="url(#g)"/><text x="240" y="176" font-size="64" text-anchor="middle" fill="#3a3e47">🎤</text></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#faf5ff"/><stop offset="1" stop-color="#f0e6f9"/></linearGradient></defs><rect width="480" height="300" fill="url(#g)"/><text x="240" y="176" font-size="64" text-anchor="middle" fill="#b78bd6">🎤</text></svg>'
 )
 
 function onImg(e) {
@@ -259,6 +262,8 @@ function formatNum(n) {
 }
 
 const tab = ref('rooms')
+const profileOpen = ref(false)
+const anchorProfile = ref({})
 const rooms = ref([])
 const giftRecords = ref([])
 const summary = ref({})
@@ -273,6 +278,15 @@ const roomForm = reactive({ title: '', category: '弹唱', scene: 'INDOOR', loca
 const statusText = (s) => ({ NOT_STARTED: '未开播', LIVING: '直播中', ENDED: '已下播', BANNED: '已封禁' }[s] || s)
 const previewIsLive = computed(() => previewRoom.value?.status === 'LIVING')
 
+async function loadAnchorProfile() {
+  try {
+    const res = await userApi.myAnchorApply()
+    const list = res.data || []
+    anchorProfile.value = list.find((x) => x.status === 'APPROVED') || list[0] || {}
+  } catch {
+    anchorProfile.value = {}
+  }
+}
 async function loadRooms() {
   const res = await liveApi.mine({ pageNum: 1, pageSize: 50 })
   rooms.value = res.data?.records || []
@@ -370,6 +384,7 @@ watch(tab, (v) => {
 })
 
 onMounted(async () => {
+  loadAnchorProfile()
   await loadRooms()
   await loadGifts()
   prefillPrepareRoom()
@@ -411,6 +426,22 @@ onMounted(async () => {
 .wb-emoji { font-size: 54px; filter: drop-shadow(0 10px 24px rgba(192, 132, 252, .22)); }
 .wb-eyebrow { font-size: 10px; letter-spacing: 2px; color: var(--km-accent); font-weight: 800; margin-bottom: 3px; }
 .wb-title { margin: 0 0 7px; font-size: 24px; font-weight: 900; letter-spacing: -.8px; }
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid #e4d9ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #5f5769;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .16s, border-color .16s, color .16s;
+}
+.button:hover:not(:disabled) { background: #faf6fe; border-color: #d6c3e5; color: #2b2334; }
 .wb-tags { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: 12px; }
 .status-pill {
   height: 20px;
@@ -500,15 +531,16 @@ onMounted(async () => {
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(10, 11, 13, .72);
-  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid rgba(255, 255, 255, .65);
   backdrop-filter: blur(10px);
-  color: #e8eaee;
+  color: #4f465a;
 }
-.status-badge.living { background: var(--km-accent); border-color: var(--km-accent); color: #07080a; }
-.status-badge.ended { color: rgba(243, 244, 246, .7); }
-.status-badge.banned { background: rgba(185, 28, 28, .9); color: #fff; border-color: transparent; }
-.live-dot { width: 5px; height: 5px; border-radius: 50%; background: #07080a; animation: blink 1.2s infinite; }
+.status-badge.living { background: var(--km-accent); border-color: var(--km-accent); color: #fff; }
+.status-badge.ended { color: #5f5769; }
+.status-badge.banned { background: #fff1f3; color: #c4242a; border-color: #f3d3d8; }
+.status-badge.living .live-dot { background: #fff; }
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: #8b3fce; animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .3; } }
 .online-chip {
   position: absolute;

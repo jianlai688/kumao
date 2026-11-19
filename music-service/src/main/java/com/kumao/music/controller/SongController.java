@@ -1,6 +1,8 @@
 package com.kumao.music.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.kumao.common.dto.PageQuery;
+import com.kumao.common.exception.BizException;
 import com.kumao.common.result.PageResult;
 import com.kumao.common.result.R;
 import com.kumao.common.security.UserContext;
@@ -8,6 +10,8 @@ import com.kumao.music.dto.LyricLine;
 import com.kumao.music.dto.SongRequest;
 import com.kumao.music.entity.Mv;
 import com.kumao.music.entity.Song;
+import com.kumao.music.entity.SongPurchase;
+import com.kumao.music.mapper.SongPurchaseMapper;
 import com.kumao.music.service.LyricService;
 import com.kumao.music.service.MvService;
 import com.kumao.music.service.RankService;
@@ -17,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
 @RequestMapping("/songs")
@@ -27,6 +33,7 @@ public class SongController {
     private final LyricService lyricService;
     private final RankService rankService;
     private final MvService mvService;
+    private final SongPurchaseMapper songPurchaseMapper;
 
     @GetMapping
     public R<PageResult<Song>> page(PageQuery query,
@@ -42,6 +49,55 @@ public class SongController {
     @GetMapping("/{id}")
     public R<Song> detail(@PathVariable Long id) {
         return R.ok(songService.detail(id));
+    }
+
+    /**
+     * 单曲购买状态：价格（分）与当前用户是否已购买。未登录时 owned 恒为 false。
+     */
+    @GetMapping("/{id}/purchase-status")
+    public R<Map<String, Object>> purchaseStatus(@PathVariable Long id) {
+        Song song = songService.detail(id);
+        Long userId = UserContext.getUserId();
+        boolean owned = userId != null && songPurchaseMapper.selectCount(
+                new LambdaQueryWrapper<SongPurchase>()
+                        .eq(SongPurchase::getUserId, userId)
+                        .eq(SongPurchase::getSongId, id)
+                        .eq(SongPurchase::getStatus, "PAID")) > 0;
+        return R.ok(Map.of(
+                "price", song.getPrice() == null ? 0 : song.getPrice(),
+                "owned", owned,
+                "vipOnly", Boolean.TRUE.equals(song.getVipOnly())
+        ));
+    }
+
+    /**
+     * 购买单曲（演示环境 MOCK 支付：创建订单即视为支付成功并解锁）
+     */
+    @PostMapping("/{id}/purchase")
+    public R<SongPurchase> purchase(@PathVariable Long id) {
+        Long userId = UserContext.requireUserId();
+        Song song = songService.detail(id);
+        int price = song.getPrice() == null ? 0 : song.getPrice();
+        if (price <= 0) {
+            throw new BizException("该歌曲是免费歌曲，无需购买");
+        }
+        SongPurchase exists = songPurchaseMapper.selectOne(new LambdaQueryWrapper<SongPurchase>()
+                .eq(SongPurchase::getUserId, userId)
+                .eq(SongPurchase::getSongId, id)
+                .eq(SongPurchase::getStatus, "PAID")
+                .last("limit 1"));
+        if (exists != null) {
+            return R.ok(exists);
+        }
+        SongPurchase purchase = new SongPurchase();
+        purchase.setUserId(userId);
+        purchase.setSongId(id);
+        purchase.setAmount(price);
+        purchase.setStatus("PAID");
+        purchase.setOrderNo("SP" + System.currentTimeMillis()
+                + String.format("%04d", ThreadLocalRandom.current().nextInt(10000)));
+        songPurchaseMapper.insert(purchase);
+        return R.ok(purchase);
     }
 
     @GetMapping("/{id}/lyric")

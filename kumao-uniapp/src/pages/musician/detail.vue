@@ -141,7 +141,7 @@ onLoad((options) => {
 <style scoped>
 .page { min-height: 100vh; background: #08070a; padding-bottom: 60rpx; box-sizing: border-box; }
 .state { padding: 140rpx 0; display: flex; flex-direction: column; align-items: center; gap: 16rpx; color: rgba(247,241,232,.4); font-size: 23rpx; }
-.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: #f5b45b; animation: spin .8s linear infinite; }
+.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: var(--km-accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .retry { margin-top: 10rpx; padding: 14rpx 30rpx; border-radius: 999rpx; background: rgba(245,180,91,.14); color: #f5cf9a; font-size: 22rpx; }
 
@@ -167,7 +167,7 @@ onLoad((options) => {
 .l { font-size: 19rpx; color: rgba(247,241,232,.34); }
 
 .intro { margin: 22rpx 24rpx 0; padding: 22rpx; border-radius: 18rpx; background: rgba(255,255,255,.035); border: 1rpx solid rgba(255,255,255,.05); }
-.intro-label { font-size: 19rpx; letter-spacing: 2rpx; color: #f5b45b; font-weight: 800; }
+.intro-label { font-size: 19rpx; letter-spacing: 2rpx; color: var(--km-accent); font-weight: 800; }
 .intro-text { display: block; margin-top: 8rpx; font-size: 23rpx; line-height: 1.7; color: rgba(247,241,232,.62); }
 
 .section-head { display: flex; align-items: baseline; gap: 10rpx; padding: 34rpx 24rpx 14rpx; }
@@ -183,4 +183,5 @@ onLoad((options) => {
 .w-sub { display: block; margin-top: 4rpx; font-size: 20rpx; color: rgba(247,241,232,.36); }
 .w-play { width: 52rpx; height: 52rpx; border-radius: 50%; background: rgba(245,180,91,.16); display: flex; align-items: center; justify-content: center; }
 </style>
+
 

@@ -27,11 +27,30 @@ class LocalReviewEngineTest {
 
     @Test
     void shouldPassCleanApplicationButKeepManualReviewReminder() {
-        AiReviewResult result = engine.review(request("MUSICIAN", "独立音乐人申请",
-                "独立民谣创作者，发布过两张原创专辑，希望加入平台。"), "test");
+        AiReviewRequest request = request("MUSICIAN", "独立音乐人申请",
+                "独立民谣创作者，发布过两张原创专辑，希望加入平台。");
+        request.setMetadata(Map.of(
+                "hasIdCardNo", true,
+                "hasIdCardFront", true,
+                "hasIdCardBack", true));
+        AiReviewResult result = engine.review(request, "test");
 
         assertEquals("PASS", result.getDecision());
         assertTrue(result.getReasons().contains("人工确认"));
+    }
+
+    @Test
+    void shouldRequireBothSidesOfIdCardForCertification() {
+        AiReviewRequest request = request("MUSICIAN", "独立音乐人申请",
+                "独立民谣创作者，发布过两张原创专辑，希望加入平台。");
+        request.setMetadata(Map.of(
+                "hasIdCardNo", true,
+                "hasIdCardFront", true,
+                "hasIdCardBack", false));
+        AiReviewResult result = engine.review(request, "test");
+
+        assertEquals("REVIEW", result.getDecision());
+        assertTrue(result.getSignals().stream().anyMatch(s -> s.contains("身份证") || s.contains("证件")));
     }
 
     @Test

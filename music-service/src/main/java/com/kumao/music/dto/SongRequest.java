@@ -22,6 +22,8 @@ public class SongRequest {
     private String style;
     private String region;
     private Boolean vipOnly;
+    /** 单曲价格（分），0 表示免费 */
+    private Integer price;
     private Integer status;
     private LocalDate releaseDate;
     private Long musicianId;

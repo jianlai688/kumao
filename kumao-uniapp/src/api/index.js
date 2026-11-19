@@ -1,12 +1,10 @@
-// #ifdef H5
-const BASE_URL = import.meta.env.VITE_API_BASE || '/api'
-// #endif
-// #ifndef H5
-const BASE_URL = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8080/api'
-// #endif
+import { getApiBase } from '@/utils/server'
 
-export const API_BASE_URL = BASE_URL
+export { getApiBase } from '@/utils/server'
+
 export function request(options) {
+  // 每次请求都重新取基址：设置页修改服务器地址后无需重启 App。
+  const BASE_URL = getApiBase()
   return new Promise((resolve, reject) => {
     const token = uni.getStorageSync('km_token')
     uni.request({
@@ -47,7 +45,9 @@ export const api = {
   smsCode: (phone) => request({ url: `/auth/sms-code?phone=${phone}` }),
   me: () => request({ url: '/users/me' }),
   updateMe: (data) => request({ url: '/users/me', method: 'PUT', data }),
+  cancelAccount: () => request({ url: '/auth/cancel', method: 'POST' }),
   banners: () => request({ url: '/music/banners' }),
+  homeSettings: () => request({ url: '/music/home/settings', silent: true }),
   hot: (limit = 20) => request({ url: `/music/rank/hot?limit=${limit}` }),
   newSongs: (limit = 20) => request({ url: `/music/rank/new?limit=${limit}` }),
   rising: (limit = 20) => request({ url: `/music/rank/rising?limit=${limit}` }),
@@ -86,6 +86,7 @@ export const api = {
 
   /* ---- 互动 ---- */
   likeStatus: (songId) => request({ url: `/comment/likes/${songId}/status`, silent: true }),
+  songPurchaseStatus: (songId) => request({ url: `/music/songs/${songId}/purchase-status`, silent: true }),  purchaseSong: (songId) => request({ url: `/music/songs/${songId}/purchase`, method: 'POST' }),
   commentCount: (songId) => request({ url: `/comment/comments/song/${songId}/count`, silent: true }),
   comments: (songId, params) => request({ url: `/comment/comments/song/${songId}?${toQuery(params)}`, silent: true }),
   createComment: (data) => request({ url: '/comment/comments', method: 'POST', data }),
@@ -98,6 +99,7 @@ export const api = {
   playlistsMine: (params) => request({ url: `/playlist/playlists/mine?${toQuery(params)}` }),
   playlistsCollected: (params) => request({ url: `/playlist/playlists/collected?${toQuery(params)}` }),
   createPlaylist: (data) => request({ url: '/playlist/playlists', method: 'POST', data }),
+  publishPlaylist: (id, isPublic) => request({ url: `/playlist/playlists/${id}/publish?publicFlag=${isPublic}`, method: 'PUT' }),
   addSongToPlaylist: (id, songId) => request({ url: `/playlist/playlists/${id}/songs/${songId}`, method: 'POST' }),
   removeSongFromPlaylist: (id, songId) => request({ url: `/playlist/playlists/${id}/songs/${songId}`, method: 'DELETE' }),
   collectPlaylist: (id) => request({ url: `/playlist/playlists/${id}/collect`, method: 'POST' }),
@@ -108,6 +110,12 @@ export const api = {
   adReport: (planId, action) => request({ url: `/ad/ad/report/${planId}?action=${encodeURIComponent(action)}`, method: 'POST', silent: true }),
   claimAdReward: (data) => request({ url: '/vip/vip/reward/ad', method: 'POST', data }),
 
+  /* ---- 角色个人资料 ---- */
+  anchorMy: () => request({ url: '/users/anchor/my' }),
+  updateAnchorProfile: (data) => request({ url: '/users/anchor/profile', method: 'PUT', data }),
+  updateMusicianProfile: (data) => request({ url: '/musician/musician/mine', method: 'PUT', data }),
+  advertiserMine: () => request({ url: '/ad/ad/mine', silent: true }),
+  updateAdvertiserProfile: (data) => request({ url: '/ad/ad/mine', method: 'PUT', data }),
   /* ---- 音乐人作品管理 ---- */
   musicianAlbums: () => request({ url: '/musician/musician/albums' }),
   createMusicianAlbum: (data) => request({ url: '/musician/musician/albums', method: 'POST', data }),
@@ -136,6 +144,7 @@ function toQuery(params = {}) {
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
     .join('&')
 }
+
 
 
 

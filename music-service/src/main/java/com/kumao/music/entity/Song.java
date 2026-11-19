@@ -28,6 +28,8 @@ public class Song extends BaseEntity {
     /** 国内 / 国外 / 粤语 */
     private String region;
     private Boolean vipOnly;
+    /** 单曲价格（分），0 表示免费 */
+    private Integer price;
     /** 0 待审核 1 已上架 2 已下架 */
     private Integer status;
     private Long playCount;

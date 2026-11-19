@@ -106,12 +106,12 @@ onShow(load)
 .page { min-height: 100vh; background: #08070a; padding-bottom: 60rpx; box-sizing: border-box; }
 .head { display: flex; align-items: flex-end; justify-content: space-between; padding: 10rpx 26rpx 24rpx; }
 .head-copy { display: flex; flex-direction: column; gap: 4rpx; }
-.eyebrow { font-size: 17rpx; letter-spacing: 3rpx; color: #f5b45b; font-weight: 800; }
+.eyebrow { font-size: 17rpx; letter-spacing: 3rpx; color: var(--km-accent); font-weight: 800; }
 .title { font-size: 36rpx; font-weight: 900; color: #f7f1e8; letter-spacing: -1rpx; }
 .sub { font-size: 21rpx; color: rgba(247,241,232,.4); }
 .clear { font-size: 21rpx; color: #ff9fb0; padding: 10rpx 18rpx; border-radius: 999rpx; background: rgba(251,113,133,.1); }
 .state { padding: 130rpx 0; display: flex; flex-direction: column; align-items: center; gap: 16rpx; color: rgba(247,241,232,.4); font-size: 23rpx; }
-.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: #f5b45b; animation: spin .8s linear infinite; }
+.spinner { width: 44rpx; height: 44rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.14); border-top-color: var(--km-accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { padding: 120rpx 60rpx; display: flex; flex-direction: column; align-items: center; gap: 12rpx; }
 .empty-ico { width: 108rpx; height: 108rpx; border-radius: 50%; background: rgba(245,180,91,.08); display: flex; align-items: center; justify-content: center; }
@@ -128,3 +128,4 @@ onShow(load)
 .sub { font-size: 20rpx; color: rgba(247,241,232,.34); }
 .del { width: 52rpx; height: 52rpx; display: flex; align-items: center; justify-content: center; }
 </style>
+

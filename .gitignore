@@ -42,3 +42,18 @@ Thumbs.db
 # Env
 .env.local
 docker/volumes/
+
+# Payment merchant private keys
+vip-service/certs/
+.secrets/
+
+# Local scratch / screenshot / generated-PPT workspaces
+.tmp-*/
+ads-out/
+browser-screenshots/
+projects/
+.pptx-build-*/
+
+# Python caches
+__pycache__/
+*.pyc

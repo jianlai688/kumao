@@ -88,6 +88,10 @@ public class StreamStatusMonitor {
         JsonNode streams = root.path("streams");
         if (streams.isArray()) {
             for (JsonNode stream : streams) {
+                // SRS 在 HLS 播放端仍连接时可能保留流但 publish.active=false，不能算主播在推流
+                if (!stream.path("publish").path("active").asBoolean(false)) {
+                    continue;
+                }
                 String name = stream.path("name").asText("");
                 if (name.startsWith("room_")) {
                     try {

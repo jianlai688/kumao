@@ -245,7 +245,8 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 INSERT INTO `ad_plan` (`id`, `advertiser_id`, `user_id`, `material_id`, `material_name`, `slot`, `start_time`, `end_time`, `target_audience`, `days`, `daily_price`, `amount`, `payment_status`, `status`, `exposure_count`, `click_count`)
 VALUES
 (19001, 17001, 5, 18001, '夏日音乐节音频广告', 'SPLASH', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY), 'ALL', 31, 800.00, 24800.00, 'PAID', 'RUNNING', 52000, 2600),
-(19002, 17001, 5, 18002, '耳机产品视频广告', 'HOME_BANNER', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY), 'VIP', 31, 520.00, 16120.00, 'PAID', 'RUNNING', 38000, 1500)
+(19002, 17001, 5, 18002, '耳机产品视频广告', 'HOME_BANNER', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY), 'VIP', 31, 520.00, 16120.00, 'PAID', 'RUNNING', 38000, 1500),
+(19005, 17001, 5, 18002, '耳机产品视频广告', 'VIP_REWARD', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY), 'ALL', 31, 100.00, 3100.00, 'PAID', 'RUNNING', 0, 0)
 ON DUPLICATE KEY UPDATE `material_name` = VALUES(`material_name`);
 
 -- 广告地域/时段统计（演示数据）

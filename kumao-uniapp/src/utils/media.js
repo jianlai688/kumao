@@ -20,23 +20,17 @@ const avatarSvg =
 export const FALLBACK_COVER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(coverSvg)
 export const FALLBACK_AVATAR = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(avatarSvg)
 
-function apiOrigin() {
-  const base = import.meta.env.VITE_API_BASE || ''
-  if (!/^https?:\/\//i.test(base)) return ''
-  try {
-    return new URL(base).origin
-  } catch (e) {
-    return ''
-  }
-}
+import { getApiOrigin } from '@/utils/server'
 
 // H5 / WebView：API 基址是绝对地址时，静态资源也要走同一主机，否则相对路径会落到本地资源服务器。
-const FILE_ORIGIN = apiOrigin() || (typeof location !== 'undefined' && /^https?:/.test(location.protocol) ? location.origin : 'http://127.0.0.1:8080')
+function fileOrigin() {
+  return getApiOrigin() || 'http://127.0.0.1:8080'
+}
 
 export function fileUrl(path) {
   if (!path) return ''
   if (/^https?:\/\//.test(path)) return path
-  return FILE_ORIGIN + (path.charAt(0) === '/' ? path : '/' + path)
+  return fileOrigin() + (path.charAt(0) === '/' ? path : '/' + path)
 }
 
 export function coverOf(url) {

@@ -183,7 +183,7 @@ onShow(loadRooms)
   background: rgba(245, 180, 91, .12);
 }
 .hero-copy { display: flex; flex-direction: column; gap: 8rpx; min-width: 0; }
-.eyebrow { font-size: 17rpx; font-weight: 800; letter-spacing: 2.4rpx; color: #f5b45b; }
+.eyebrow { font-size: 17rpx; font-weight: 800; letter-spacing: 2.4rpx; color: var(--km-accent); }
 .hero-title { font-size: 34rpx; font-weight: 900; color: #f7f1e8; letter-spacing: -0.8rpx; }
 .hero-sub { font-size: 23rpx; line-height: 1.65; color: rgba(247, 241, 232, .52); }
 
@@ -237,8 +237,9 @@ onShow(loadRooms)
 .steps { margin-top: 26rpx; padding-top: 22rpx; border-top: 1rpx solid rgba(255, 255, 255, .06); display: flex; flex-direction: column; gap: 14rpx; }
 .steps-title { font-size: 24rpx; font-weight: 800; color: #f7f1e8; }
 .step { display: flex; gap: 14rpx; font-size: 21rpx; line-height: 1.6; color: rgba(247, 241, 232, .48); }
-.step-num { width: 34rpx; height: 34rpx; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(245, 180, 91, .14); color: #f5b45b; font-size: 18rpx; font-weight: 800; }
+.step-num { width: 34rpx; height: 34rpx; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(245, 180, 91, .14); color: var(--km-accent); font-size: 18rpx; font-weight: 800; }
 .tip { display: block; margin-top: 22rpx; padding: 16rpx; border-radius: 12rpx; background: rgba(255, 255, 255, .035); font-size: 19rpx; line-height: 1.65; color: rgba(247, 241, 232, .38); }
 </style>
+
 
 

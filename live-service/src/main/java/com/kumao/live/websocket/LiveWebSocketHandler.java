@@ -1,16 +1,18 @@
 package com.kumao.live.websocket;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kumao.common.exception.BizException;
 import com.kumao.live.dto.DanmakuMessage;
+import com.kumao.live.dto.DanmakuSendResult;
 import com.kumao.live.entity.LiveRoom;
 import com.kumao.live.mapper.LiveRoomMapper;
-import com.kumao.live.service.LiveContentModerationService;
+import com.kumao.live.service.DanmakuService;
 import com.kumao.live.service.OnlineCountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
@@ -27,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 直播间弹幕 WebSocket：
  * - 进入房间更新 Redis 在线人数并向房间广播入场消息
- * - 收到文本弹幕 -> 敏感词校验 -> 房间内广播 -> 投递 MQ 异步落库
+ * - 收到文本弹幕 -> AI 审核，PASS 立即广播并异步落库，其余落库后交管理员复核
  * - 离开房间更新在线人数
  */
 @Slf4j
@@ -44,16 +46,17 @@ public class LiveWebSocketHandler extends TextWebSocketHandler {
 
     private final ObjectMapper objectMapper;
     private final OnlineCountService onlineCountService;
-    private final LiveContentModerationService moderationService;
-    private final RabbitTemplate rabbitTemplate;
     private final LiveRoomMapper roomMapper;
     /** roomId -> sessions */
     private final Map<Long, Map<String, WebSocketSession>> rooms = new ConcurrentHashMap<>();
 
-    @Value("${kumao.mq.danmaku-exchange:kumao.live.exchange}")
-    private String danmakuExchange;
-    @Value("${kumao.mq.danmaku-routing-key:live.danmaku}")
-    private String danmakuRoutingKey;
+    /**
+     * DanmakuService 依赖本类广播，本类也依赖 DanmakuService 做统一审核与持久化；
+     * 使用延迟代理打断构造期循环依赖。
+     */
+    @Lazy
+    @Autowired
+    private DanmakuService danmakuService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -121,6 +124,23 @@ public class LiveWebSocketHandler extends TextWebSocketHandler {
             sendRoomMetrics(session);
             return;
         }
+        // 主播控制台通过同一条 WebSocket 实时同步「正在播放」，供直播画面/观众端使用
+        try {
+            JsonNode envelope = objectMapper.readTree(payload);
+            if ("NOW_PLAYING".equals(envelope.path("type").asText())) {
+                if (!isStudio(session) || session.getAttributes().get(ATTR_USER_ID) == null) {
+                    return;
+                }
+                DanmakuMessage state = objectMapper.treeToValue(envelope, DanmakuMessage.class);
+                state.setRoomId(roomId);
+                state.setType("NOW_PLAYING");
+                state.setTimestamp(System.currentTimeMillis());
+                broadcast(state);
+                return;
+            }
+        } catch (Exception ignored) {
+            // 不是结构化控制消息时继续按弹幕处理
+        }
         DanmakuMessage in;
         try {
             in = objectMapper.readValue(payload, DanmakuMessage.class);
@@ -146,17 +166,15 @@ public class LiveWebSocketHandler extends TextWebSocketHandler {
             return;
         }
         try {
-            moderationService.checkText(in.getUserId(), roomId, in.getContent());
+            DanmakuSendResult result = danmakuService.broadcastAndPersist(in);
+            if (!result.isPublished()) {
+                send(session, DanmakuMessage.system(roomId, result.getMessage()));
+            }
         } catch (BizException e) {
             send(session, DanmakuMessage.system(roomId, e.getMessage()));
-            return;
-        }
-        broadcast(in);
-        // 弹幕投递 RabbitMQ 异步持久化
-        try {
-            rabbitTemplate.convertAndSend(danmakuExchange, danmakuRoutingKey, in);
         } catch (Exception e) {
-            log.warn("弹幕投递 MQ 失败: {}", e.getMessage());
+            log.warn("弹幕处理失败 room={} userId={}: {}", roomId, in.getUserId(), e.getMessage());
+            send(session, DanmakuMessage.system(roomId, "弹幕发送失败，请稍后重试"));
         }
     }
 

@@ -90,7 +90,7 @@ onMounted(async () => {
 .l1 { display: flex; align-items: center; gap: 10rpx; }
 .name { font-size: 26rpx; font-weight: 600; color: #f7f1e8; }
 .badge {
-  font-size: 15rpx; color: #f5b45b;
+  font-size: 15rpx; color: var(--km-accent);
   border: 1rpx solid rgba(245, 180, 91, .3);
   border-radius: 5rpx; padding: 1rpx 6rpx;
 }
@@ -110,6 +110,7 @@ onMounted(async () => {
 .apply-t { font-size: 25rpx; font-weight: 700; color: rgba(247, 241, 232, .9); }
 .apply-s { font-size: 18rpx; color: rgba(247, 241, 232, .36); }
 </style>
+
 
 
 

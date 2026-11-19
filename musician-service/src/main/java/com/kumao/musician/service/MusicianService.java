@@ -56,6 +56,9 @@ public class MusicianService {
         musician.setUserId(userId);
         musician.setStageName(req.getStageName());
         musician.setRealName(req.getRealName());
+        musician.setIdCard(req.getIdCard());
+        musician.setIdCardFrontUrl(req.getIdCardFrontUrl());
+        musician.setIdCardBackUrl(req.getIdCardBackUrl());
         musician.setStyle(req.getStyle());
         musician.setIntro(req.getIntro());
         musician.setAvatar(req.getAvatar());
@@ -90,6 +93,11 @@ public class MusicianService {
         Musician musician = musicianMapper.selectById(musicianId);
         if (musician == null) {
             throw new BizException("音乐人申请不存在");
+        }
+        if (approved && (!StringUtils.hasText(musician.getIdCard())
+                || !StringUtils.hasText(musician.getIdCardFrontUrl())
+                || !StringUtils.hasText(musician.getIdCardBackUrl()))) {
+            throw new BizException("请先核验身份证号及正反面照片，再通过审核");
         }
         musician.setStatus(approved ? "APPROVED" : "REJECTED");
         musician.setRejectReason(approved ? null : reason);
@@ -161,6 +169,7 @@ public class MusicianService {
         if (musician == null) {
             throw new BizException("音乐人不存在");
         }
+        maskIdentity(musician);
         List<MusicianWork> works = workMapper.selectList(new LambdaQueryWrapper<MusicianWork>()
                 .eq(MusicianWork::getMusicianId, musicianId)
                 .eq(MusicianWork::getStatus, "APPROVED")
@@ -179,6 +188,7 @@ public class MusicianService {
                         .eq(StringUtils.hasText(style), Musician::getStyle, style)
                         .like(StringUtils.hasText(query.getKeyword()), Musician::getStageName, query.getKeyword())
                         .orderByDesc(Musician::getFansCount));
+        page.getRecords().forEach(this::maskIdentity);
         return PageResult.of(page);
     }
 
@@ -289,6 +299,7 @@ public class MusicianService {
                     song.setStyle(work.getStyle());
                     song.setRegion("国内");
                     song.setVipOnly(Boolean.TRUE.equals(work.getVipOnly()));
+                    song.setPrice(work.getPrice() == null ? 0 : work.getPrice());
                     song.setStatus(1);
                     song.setReleaseDate(work.getReleaseDate() == null ? null : work.getReleaseDate().toString());
                     song.setMusicianId(work.getMusicianId());
@@ -387,6 +398,32 @@ public class MusicianService {
         albumMapper.deleteById(albumId);
     }
 
+    /**
+     * 音乐人修改个人信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateMyProfile(Long userId, com.kumao.musician.dto.MusicianProfileRequest req) {
+        Musician musician = requireApproved(userId);
+        if (req.getStageName() != null) {
+            if (req.getStageName().isBlank()) {
+                throw new BizException("艺名不能为空");
+            }
+            musician.setStageName(req.getStageName().trim());
+        }
+        if (req.getAvatar() != null) {
+            musician.setAvatar(req.getAvatar());
+        }
+        if (req.getStyle() != null) {
+            musician.setStyle(req.getStyle());
+        }
+        if (req.getIntro() != null) {
+            musician.setIntro(req.getIntro());
+        }
+        if (req.getRepresentative() != null) {
+            musician.setRepresentative(req.getRepresentative());
+        }
+        musicianMapper.updateById(musician);
+    }
     public List<MusicianAlbum> albums(Long userId) {
         Musician musician = requireApproved(userId);
         return albumMapper.selectList(new LambdaQueryWrapper<MusicianAlbum>()
@@ -576,6 +613,7 @@ public class MusicianService {
         work.setLanguage(req.getLanguage());
         work.setStyle(req.getStyle());
         work.setVipOnly(Boolean.TRUE.equals(req.getVipOnly()));
+        work.setPrice(req.getPrice() == null ? 0 : Math.max(0, req.getPrice()));
         work.setReleaseDate(req.getReleaseDate());
     }
 
@@ -601,6 +639,14 @@ public class MusicianService {
         return album;
     }
 
+    /** 公开主页 / 列表不返回身份证号与证件照片，仅本人和管理端可见。 */
+    private void maskIdentity(Musician musician) {
+        if (musician == null) return;
+        musician.setIdCard(null);
+        musician.setIdCardFrontUrl(null);
+        musician.setIdCardBackUrl(null);
+    }
+
     private void syncSearch(Musician musician) {
         try {
             SearchDocDTO doc = new SearchDocDTO();
@@ -618,4 +664,5 @@ public class MusicianService {
         }
     }
 }
+
 
