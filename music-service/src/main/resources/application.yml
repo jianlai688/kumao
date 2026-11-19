@@ -16,7 +16,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/kumao_music?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:kumao123456}
+    password: ${MYSQL_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
@@ -33,7 +33,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 kumao:
   jwt:
-    secret: ${JWT_SECRET:kumao-music-platform-jwt-secret-key-2026-please-change}
+    secret: ${JWT_SECRET}
   rank:
     cache-seconds: 300
   music:

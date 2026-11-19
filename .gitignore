@@ -47,6 +47,11 @@ docker/volumes/
 vip-service/certs/
 .secrets/
 
+# Local dev secrets: copy from scripts/local-env.example.* and fill in
+scripts/local-env.bat
+scripts/local-env.sh
+scripts/local-env.env
+
 # Local scratch / screenshot / generated-PPT workspaces
 .tmp-*/
 ads-out/

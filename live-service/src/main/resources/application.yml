@@ -25,7 +25,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/kumao_music?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:kumao123456}
+    password: ${MYSQL_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
@@ -36,7 +36,7 @@ spring:
     host: ${RABBITMQ_HOST:127.0.0.1}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    password: ${RABBITMQ_PASSWORD}
 mybatis-plus:
   global-config:
     db-config:
@@ -56,7 +56,7 @@ kumao:
     push-host: ${SRS_PUSH_HOST:}
     http-port: ${SRS_HTTP_PORT:8088}
     # 推流鉴权密钥
-    push-key: ${SRS_PUSH_KEY:kumao-srs-push-key}
+    push-key: ${SRS_PUSH_KEY}
     # 对外播放域名（HLS 播放地址）
     play-host: ${SRS_PLAY_HOST:http://127.0.0.1:8088}
     # SRS HTTP API，用于轮询活跃流并经 WebSocket 推送开播/断流状态

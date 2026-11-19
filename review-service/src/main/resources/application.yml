@@ -21,7 +21,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/kumao_music?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:kumao123456}
+    password: ${MYSQL_PASSWORD}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -37,11 +37,11 @@ mybatis-plus:
 
 kumao:
   jwt:
-    secret: ${JWT_SECRET:kumao-music-platform-jwt-secret-key-2026-please-change}
+    secret: ${JWT_SECRET}
     expire-seconds: 604800
   ai:
     # 模型 API Key 落库加密口令，生产环境必须通过环境变量覆盖
-    config-secret: ${AI_CONFIG_SECRET:kumao-ai-config-dev-secret-change-me}
+    config-secret: ${AI_CONFIG_SECRET}
     # 审核模型的环境变量兜底；管理员在「模型配置」中启用后会优先使用数据库配置
     deepseek:
       # 默认关闭外部模型，未配置时自动走可解释本地规则

@@ -39,22 +39,34 @@ if not exist "%ROOT%\kumao-web\dist\index.html" (
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 REM ---------- middleware connection settings of this machine ----------
-set "NACOS_ADDR=127.0.0.1:8848"
-set "MYSQL_HOST=127.0.0.1"
-set "MYSQL_PORT=3307"
-set "MYSQL_USER=root"
-set "MYSQL_PASSWORD=kumao123456"
+REM 敏感项优先取自环境变量或 scripts\local-env.bat（该文件不入库）
+if exist "%ROOT%\scripts\local-env.bat" call "%ROOT%\scripts\local-env.bat"
+
+if not defined NACOS_ADDR set "NACOS_ADDR=127.0.0.1:8848"
+if not defined MYSQL_HOST set "MYSQL_HOST=127.0.0.1"
+if not defined MYSQL_PORT set "MYSQL_PORT=3307"
+if not defined MYSQL_USER set "MYSQL_USER=root"
+if not defined MYSQL_PASSWORD set "MYSQL_PASSWORD=kumao123456"
 REM docker-published redis is reachable on IPv6 loopback only
 REM (a local redis-server owns 127.0.0.1:6379)
-set "REDIS_HOST=::1"
-set "REDIS_PORT=6379"
-set "RABBITMQ_HOST=127.0.0.1"
-set "RABBITMQ_PORT=5672"
-set "MINIO_ENDPOINT=http://127.0.0.1:9000"
-set "ES_URIS=http://127.0.0.1:9200"
-set "SRS_RTMP_HOST=127.0.0.1"
-set "SRS_PLAY_HOST=/hls"
-set "SRS_API_URL=http://127.0.0.1:1985"
+if not defined REDIS_HOST set "REDIS_HOST=::1"
+if not defined REDIS_PORT set "REDIS_PORT=6379"
+if not defined RABBITMQ_HOST set "RABBITMQ_HOST=127.0.0.1"
+if not defined RABBITMQ_PORT set "RABBITMQ_PORT=5672"
+if not defined RABBITMQ_USER set "RABBITMQ_USER=guest"
+if not defined RABBITMQ_PASSWORD set "RABBITMQ_PASSWORD=guest"
+if not defined MINIO_ENDPOINT set "MINIO_ENDPOINT=http://127.0.0.1:9000"
+if not defined MINIO_ACCESS_KEY set "MINIO_ACCESS_KEY=minioadmin"
+if not defined MINIO_SECRET_KEY set "MINIO_SECRET_KEY=minioadmin"
+if not defined ES_URIS set "ES_URIS=http://127.0.0.1:9200"
+if not defined SRS_RTMP_HOST set "SRS_RTMP_HOST=127.0.0.1"
+if not defined SRS_PLAY_HOST set "SRS_PLAY_HOST=/hls"
+if not defined SRS_API_URL set "SRS_API_URL=http://127.0.0.1:1985"
+if not defined SRS_PUSH_KEY set "SRS_PUSH_KEY=kumao-srs-push-key"
+if not defined AI_CONFIG_SECRET set "AI_CONFIG_SECRET=kumao-local-dev-ai-config-secret"
+
+REM JWT signing secret: env / local-env.bat first, else read or generate once into .secrets\
+if not defined JWT_SECRET for /f "usebackq delims=" %%A in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\ensure-secret.ps1" -Path "%ROOT%\.secrets\jwt-secret.txt" -Length 48`) do set "JWT_SECRET=%%A"
 
 echo [1/3] backend services
 for %%S in (user-service:8101 music-service:8102 playlist-service:8103 comment-service:8104 file-service:8105 live-service:8106 search-service:8107 vip-service:8108 musician-service:8109 ad-service:8110 review-service:8111) do (
